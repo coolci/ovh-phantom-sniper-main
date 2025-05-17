@@ -1,0 +1,244 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+QingKe+HuangYou&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 13%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 196 100% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 196 100% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 60.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 196 100% 50%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 196 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 196 100% 26%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 196 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-cyber-bg text-cyber-text font-chinese;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    overscroll-behavior: none;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-cyber tracking-wider;
+  }
+  
+  button, a, input, select, textarea {
+    @apply focus:outline-none;
+  }
+  
+  @media (max-width: 640px) {
+    button, a {
+      @apply min-h-[44px] min-w-[44px];
+    }
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-cyber-bg;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-cyber-accent/50 rounded-full;
+  border: 2px solid transparent;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-cyber-accent;
+}
+
+@layer components {
+  .cyber-panel {
+    @apply bg-card bg-opacity-60 backdrop-blur-sm border border-cyber-accent/30 rounded-md overflow-hidden relative;
+  }
+  
+  .cyber-panel::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-cyber-accent/5 to-cyber-neon/5 opacity-30 pointer-events-none;
+  }
+  
+  .cyber-panel::after {
+    content: '';
+    @apply absolute h-[1px] w-full left-0 top-0 bg-gradient-to-r from-transparent via-cyber-accent to-transparent pointer-events-none;
+  }
+  
+  .cyber-button {
+    @apply relative px-4 py-2 bg-cyber-grid border border-cyber-accent/50 text-cyber-text 
+           font-cyber uppercase tracking-wider text-sm
+           hover:bg-cyber-accent/20 hover:border-cyber-accent hover:shadow-neon
+           transition-all duration-300 overflow-hidden;
+  }
+  
+  .cyber-button::before {
+    content: '';
+    @apply absolute top-0 left-0 w-full h-full opacity-0 
+           bg-gradient-to-r from-cyber-accent/0 via-cyber-accent/30 to-cyber-accent/0
+           hover:opacity-100 animate-flow-right pointer-events-none;
+  }
+  
+  .cyber-input {
+    @apply bg-cyber-bg border border-cyber-grid focus:border-cyber-accent/70 focus:shadow-neon-inner
+           px-3 py-2 rounded-sm text-cyber-text placeholder:text-cyber-muted outline-none;
+  }
+  
+  .cyber-card {
+    @apply cyber-panel p-4;
+  }
+  
+  .cyber-grid-bg {
+    background-image: 
+      linear-gradient(to right, rgba(30, 42, 58, 0.3) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(30, 42, 58, 0.3) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  
+  .cyber-scan {
+    @apply relative overflow-hidden;
+  }
+  
+  .cyber-scan::after {
+    content: '';
+    @apply absolute inset-0 animate-scanning opacity-30;
+  }
+  
+  .cyber-glow-text {
+    @apply text-cyber-accent drop-shadow-[0_0_2px_rgba(0,179,254,0.8)];
+  }
+  
+  .cyber-grid-line {
+    @apply border-t border-cyber-grid;
+  }
+  
+  .cyber-gradient-border {
+    @apply relative;
+  }
+  
+  .cyber-gradient-border::before {
+    content: '';
+    @apply absolute inset-0 rounded-lg p-[1px] bg-gradient-to-r from-cyber-accent via-cyber-neon to-cyber-neon-alt -z-10;
+    mask: 
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+  }
+
+  .cyber-table th {
+    @apply uppercase text-xs font-cyber text-cyber-accent/80 border-b border-cyber-accent/20 pb-2;
+  }
+  
+  .cyber-table td {
+    @apply py-3 border-b border-cyber-grid;
+  }
+  
+  .cyber-badge {
+    @apply inline-flex items-center rounded-full border border-cyber-accent/30 px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-cyber-accent bg-cyber-bg;
+  }
+  
+  .status-available {
+    @apply text-green-400 animate-pulse;
+  }
+  
+  .status-unavailable {
+    @apply text-red-400;
+  }
+  
+  .status-unknown {
+    @apply text-yellow-400;
+  }
+  
+  .mobile-menu-item {
+    @apply relative flex items-center px-3 py-3 rounded-md transition-all;
+  }
+  
+  .mobile-touch-feedback {
+    @apply active:bg-cyber-accent/20 transition-colors duration-150;
+  }
+  
+  .mobile-bottom-safe-area {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  .mobile-top-safe-area {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Dialog styling */
+  .cyber-dialog {
+    @apply border border-cyber-accent/30 bg-cyber-bg/90 backdrop-blur-md shadow-neon-inner;
+  }
+  
+  /* Toast styling */
+  .cyber-toast {
+    @apply bg-cyber-bg/90 backdrop-blur-md border border-cyber-accent/30 shadow-neon;
+  }
+}
+
+/* Animation for text cycling */
+@keyframes text-cycle {
+  0%, 20% {
+    transform: translateY(0%);
+  }
+  25%, 45% {
+    transform: translateY(-25%);
+  }
+  50%, 70% {
+    transform: translateY(-50%);
+  }
+  75%, 95% {
+    transform: translateY(-75%);
+  }
+  100% {
+    transform: translateY(-100%);
+  }
+}
+
+.animate-text-cycle {
+  animation: text-cycle 10s ease-in-out infinite;
+}
