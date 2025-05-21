@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAPI } from "@/context/APIContext";
@@ -33,6 +32,8 @@ interface ServerPlan {
   storage: string;
   datacenters: {
     datacenter: string;
+    dcName: string;
+    region: string;
     availability: string;
   }[];
   defaultOptions: ServerOption[];
@@ -260,7 +261,9 @@ const QueuePage = () => {
                 >
                   <option value="">选择数据中心</option>
                   {selectedServer?.datacenters.map((dc) => (
-                    <option key={dc.datacenter} value={dc.datacenter}>{dc.datacenter}</option>
+                    <option key={dc.datacenter} value={dc.datacenter}>
+                      {dc.datacenter} - {dc.dcName} ({dc.region})
+                    </option>
                   ))}
                 </select>
               </div>

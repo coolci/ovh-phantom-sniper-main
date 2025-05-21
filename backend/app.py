@@ -184,10 +184,19 @@ def check_server_availability(plan_code):
             datacenters = item.get("datacenters", [])
             
             for dc_info in datacenters:
-                availability = dc_info.get("availability")
+                availability = dc_info.get("availability", "unknown")
                 datacenter_name = dc_info.get("datacenter")
-                result[datacenter_name] = availability
                 
+                # 确保可用性状态有正确的值
+                if not availability or availability == "unknown":
+                    result[datacenter_name] = "unknown"
+                elif availability == "unavailable":
+                    result[datacenter_name] = "unavailable"
+                else:
+                    # 任何非"unavailable"或"unknown"的状态都被视为"available"
+                    result[datacenter_name] = availability
+                
+        add_log("INFO", f"成功检查 {plan_code} 的可用性: {result}")
         return result
     except Exception as e:
         add_log("ERROR", f"Failed to check availability for {plan_code}: {str(e)}")
@@ -373,26 +382,114 @@ def load_server_list():
                 for dc in item.get("datacenters", []):
                     datacenters.append({
                         "datacenter": dc.get("datacenter"),
-                        "availability": dc.get("availability")
+                        "availability": dc.get("availability", "unknown")
                     })
             
             # Extract server details
             default_options = []
             available_options = []
             
-            # Get addons/options
-            for addon in plan.get("addons", []):
-                addon_plan_code = addon.get("planCode")
-                if not addon_plan_code:
-                    continue
+            # 获取推荐配置和可选配置 - 使用多种方法处理不同格式
+            try:
+                # 方法 1: 检查plan.default.options
+                if plan.get("default") and isinstance(plan.get("default"), dict) and plan.get("default").get("options"):
+                    for default_opt in plan.get("default").get("options"):
+                        if isinstance(default_opt, dict):
+                            option_code = default_opt.get("planCode")
+                            option_name = default_opt.get("description", option_code)
+                            
+                            if option_code:
+                                default_options.append({
+                                    "label": option_name,
+                                    "value": option_code
+                                })
                 
-                # Add to options list
-                available_options.append({
-                    "label": addon.get("description", addon_plan_code),
-                    "value": addon_plan_code
-                })
+                # 方法 2: 检查plan.addons
+                if plan.get("addons") and isinstance(plan.get("addons"), list):
+                    for addon in plan.get("addons"):
+                        if not isinstance(addon, dict):
+                            continue
+                            
+                        addon_plan_code = addon.get("planCode")
+                        if not addon_plan_code:
+                            continue
+                        
+                        # 跳过已经在默认选项中的配置
+                        if any(opt["value"] == addon_plan_code for opt in default_options):
+                            continue
+                        
+                        # 添加到可选配置列表
+                        available_options.append({
+                            "label": addon.get("description", addon_plan_code),
+                            "value": addon_plan_code
+                        })
+                
+                # 方法 3: 检查plan.product.options
+                if plan.get("product") and isinstance(plan.get("product"), dict) and plan.get("product").get("options"):
+                    product_options = plan.get("product").get("options")
+                    if isinstance(product_options, list):
+                        for product_opt in product_options:
+                            if not isinstance(product_opt, dict):
+                                continue
+                                
+                            option_code = product_opt.get("planCode")
+                            option_name = product_opt.get("description", option_code)
+                            
+                            if option_code and not any(opt["value"] == option_code for opt in available_options) and not any(opt["value"] == option_code for opt in default_options):
+                                available_options.append({
+                                    "label": option_name,
+                                    "value": option_code
+                                })
+                
+                # 方法 4: 检查plan.addonFamilies
+                if plan.get("addonFamilies") and isinstance(plan.get("addonFamilies"), list):
+                    for family in plan.get("addonFamilies"):
+                        if not isinstance(family, dict) or not family.get("addons"):
+                            continue
+                            
+                        for addon in family.get("addons"):
+                            if not isinstance(addon, dict):
+                                continue
+                                
+                            addon_plan_code = addon.get("planCode")
+                            if not addon_plan_code:
+                                continue
+                            
+                            # 跳过已经在默认选项或可选配置中的项目
+                            if any(opt["value"] == addon_plan_code for opt in default_options) or any(opt["value"] == addon_plan_code for opt in available_options):
+                                continue
+                            
+                            # 添加到可选配置列表
+                            available_options.append({
+                                "label": addon.get("description", addon_plan_code),
+                                "value": addon_plan_code
+                            })
+                
+                # 方法 5: 检查plan.pricings中的配置项
+                if plan.get("pricings") and isinstance(plan.get("pricings"), dict):
+                    for pricing_key, pricing_value in plan.get("pricings").items():
+                        if isinstance(pricing_value, dict) and pricing_value.get("options"):
+                            for option_code, option_details in pricing_value.get("options").items():
+                                # 跳过已经在其他列表中的项目
+                                if any(opt["value"] == option_code for opt in default_options) or any(opt["value"] == option_code for opt in available_options):
+                                    continue
+                                
+                                option_label = option_code
+                                if isinstance(option_details, dict) and option_details.get("description"):
+                                    option_label = option_details.get("description")
+                                
+                                available_options.append({
+                                    "label": option_label,
+                                    "value": option_code
+                                })
+                
+                # 记录找到的选项数量
+                add_log("INFO", f"Found {len(default_options)} default options and {len(available_options)} available options for {plan_code}")
+                
+            except Exception as e:
+                add_log("WARNING", f"Error parsing options for {plan_code}: {str(e)}")
             
-            # Create server plan info
+            # 创建初始服务器信息对象
             server_info = {
                 "planCode": plan_code,
                 "name": plan.get("invoiceName", ""),
@@ -407,104 +504,145 @@ def load_server_list():
                 "availableOptions": available_options
             }
             
-            # 1. 尝试从properties中提取硬件详情
+            # 获取服务器名称和描述，确保它们不为空
+            if not server_info["name"] and plan.get("displayName"):
+                server_info["name"] = plan.get("displayName")
+            
+            if not server_info["description"] and plan.get("displayName"):
+                server_info["description"] = plan.get("displayName")
+            
+            # 解析方法 1: 尝试从properties中提取硬件详情
             try:
-                for prop in plan.get("details", {}).get("properties", []):
-                    prop_name = prop.get("name", "").lower()
-                    value = prop.get("value", "N/A")
-                    
-                    if "cpu" in prop_name:
-                        server_info["cpu"] = value
-                    elif "memory" in prop_name or "ram" in prop_name:
-                        server_info["memory"] = value
-                    elif "storage" in prop_name or "disk" in prop_name or "hdd" in prop_name or "ssd" in prop_name:
-                        server_info["storage"] = value
-                    elif "bandwidth" in prop_name:
-                        if "vrack" in prop_name or "private" in prop_name:
-                            server_info["vrackBandwidth"] = value
-                        else:
-                            server_info["bandwidth"] = value
+                if plan.get("details") and plan.get("details").get("properties"):
+                    for prop in plan.get("details").get("properties"):
+                        prop_name = prop.get("name", "").lower()
+                        value = prop.get("value", "N/A")
+                        
+                        if value and value != "N/A":
+                            if any(cpu_term in prop_name for cpu_term in ["cpu", "processor"]):
+                                server_info["cpu"] = value
+                            elif any(mem_term in prop_name for mem_term in ["memory", "ram"]):
+                                server_info["memory"] = value
+                            elif any(storage_term in prop_name for storage_term in ["storage", "disk", "hdd", "ssd"]):
+                                server_info["storage"] = value
+                            elif "bandwidth" in prop_name:
+                                if any(private_term in prop_name for private_term in ["vrack", "private", "internal"]):
+                                    server_info["vrackBandwidth"] = value
+                                else:
+                                    server_info["bandwidth"] = value
             except Exception as e:
                 add_log("WARNING", f"Error parsing properties for {plan_code}: {str(e)}")
             
-            # 2. 尝试从plan格式2中获取信息 (服务器类别、具体规格)
+            # 解析方法 2: 尝试从名称中提取信息
             try:
-                # 先尝试从名称解析硬件信息
                 server_name = server_info["name"]
                 
-                # 检查名称中是否包含CPU信息
-                if server_info["cpu"] == "N/A" and "|" in server_name:
-                    cpu_part = server_name.split("|")[1].strip()
-                    if cpu_part and server_info["cpu"] == "N/A":
+                # 检查是否为KS/RISE系列服务器，它们通常使用 "KS-XX | CPU信息" 格式
+                if "|" in server_name:
+                    parts = server_name.split("|")
+                    if len(parts) > 1 and server_info["cpu"] == "N/A":
+                        cpu_part = parts[1].strip()
                         server_info["cpu"] = cpu_part
+                        
+                        # 尝试从CPU部分提取更多信息
+                        if "core" in cpu_part.lower():
+                            # 例如: "4 Core, 8 Thread, xxxx"
+                            core_parts = cpu_part.split(",")
+                            if len(core_parts) > 1:
+                                server_info["cpu"] = core_parts[0].strip()
                 
-                # 从产品附加信息中获取
-                additional_info = plan.get("product", {}).get("configurations", [])
-                for config in additional_info:
-                    config_name = config.get("name", "").lower()
-                    value = config.get("value")
-                    
-                    if value:
-                        if "cpu" in config_name:
-                            server_info["cpu"] = value
-                        elif "memory" in config_name or "ram" in config_name:
-                            server_info["memory"] = value
-                        elif "storage" in config_name or "disk" in config_name:
-                            server_info["storage"] = value
-                        elif "bandwidth" in config_name:
-                            server_info["bandwidth"] = value
+                # 从服务器名称中提取内存信息
+                if server_info["memory"] == "N/A":
+                    ram_match = None
+                    if "ram" in server_name.lower():
+                        # 尝试匹配 "xxxGB RAM" 或 "RAM xxxGB" 格式
+                        ram_parts = server_name.lower().split("ram")
+                        for ram_part in ram_parts:
+                            if "gb" in ram_part:
+                                server_info["memory"] = ram_part.strip()
+                                break
+            except Exception as e:
+                add_log("WARNING", f"Error parsing server name for {plan_code}: {str(e)}")
+            
+            # 解析方法 3: 尝试从产品配置中提取信息
+            try:
+                if plan.get("product") and plan.get("product").get("configurations"):
+                    configs = plan.get("product").get("configurations")
+                    for config in configs:
+                        config_name = config.get("name", "").lower()
+                        value = config.get("value")
+                        
+                        if value:
+                            if any(cpu_term in config_name for cpu_term in ["cpu", "processor"]):
+                                server_info["cpu"] = value
+                            elif any(mem_term in config_name for mem_term in ["memory", "ram"]):
+                                server_info["memory"] = value
+                            elif any(storage_term in config_name for storage_term in ["storage", "disk", "hdd", "ssd"]):
+                                server_info["storage"] = value
+                            elif "bandwidth" in config_name:
+                                server_info["bandwidth"] = value
             except Exception as e:
                 add_log("WARNING", f"Error parsing product configurations for {plan_code}: {str(e)}")
             
-            # 3. 尝试从plan.description解析信息
+            # 解析方法 4: 尝试从description解析信息
             try:
                 description = plan.get("description", "")
                 if description:
                     parts = description.split(",")
                     for part in parts:
                         part = part.strip().lower()
-                        if "cpu" in part and server_info["cpu"] == "N/A":
+                        
+                        # 检查每个部分是否包含硬件信息
+                        if server_info["cpu"] == "N/A" and any(cpu_term in part for cpu_term in ["cpu", "core", "i7", "i9", "xeon", "epyc", "ryzen"]):
                             server_info["cpu"] = part
-                        elif ("ram" in part or "gb" in part or "memory" in part) and server_info["memory"] == "N/A":
+                            
+                        if server_info["memory"] == "N/A" and any(mem_term in part for mem_term in ["ram", "gb", "memory"]):
                             server_info["memory"] = part
-                        elif ("hdd" in part or "ssd" in part or "nvme" in part or "storage" in part) and server_info["storage"] == "N/A":
+                            
+                        if server_info["storage"] == "N/A" and any(storage_term in part for storage_term in ["hdd", "ssd", "nvme", "storage", "disk"]):
                             server_info["storage"] = part
-                        elif "bandwidth" in part and server_info["bandwidth"] == "N/A":
+                            
+                        if server_info["bandwidth"] == "N/A" and "bandwidth" in part:
                             server_info["bandwidth"] = part
             except Exception as e:
                 add_log("WARNING", f"Error parsing description for {plan_code}: {str(e)}")
             
-            # 4. 从pricing获取信息 (一些API响应将硬件信息放在这里)
+            # 解析方法 5: 从pricing获取信息
             try:
-                pricing_info = plan.get("pricing", {}).get("configurations", [])
-                for price_config in pricing_info:
-                    config_name = price_config.get("name", "").lower()
-                    value = price_config.get("value")
-                    
-                    if value:
-                        if "processor" in config_name and server_info["cpu"] == "N/A":
-                            server_info["cpu"] = value
-                        elif "memory" in config_name and server_info["memory"] == "N/A":
-                            server_info["memory"] = value
-                        elif "storage" in config_name and server_info["storage"] == "N/A":
-                            server_info["storage"] = value
+                if plan.get("pricing") and plan.get("pricing").get("configurations"):
+                    pricing_configs = plan.get("pricing").get("configurations")
+                    for price_config in pricing_configs:
+                        config_name = price_config.get("name", "").lower()
+                        value = price_config.get("value")
+                        
+                        if value:
+                            if "processor" in config_name and server_info["cpu"] == "N/A":
+                                server_info["cpu"] = value
+                            elif "memory" in config_name and server_info["memory"] == "N/A":
+                                server_info["memory"] = value
+                            elif "storage" in config_name and server_info["storage"] == "N/A":
+                                server_info["storage"] = value
             except Exception as e:
                 add_log("WARNING", f"Error parsing pricing for {plan_code}: {str(e)}")
             
-            # 处理KS/RISE系列服务器名称格式
-            if server_info["cpu"] == "N/A":
-                name_parts = server_info["name"].split("|")
-                if len(name_parts) > 1:
-                    # 去除首尾空格
-                    server_info["cpu"] = name_parts[1].strip()
+            # 清理提取的数据以确保格式一致
+            # 对于CPU，添加一些基本信息如果只有核心数
+            if server_info["cpu"] != "N/A" and server_info["cpu"].isdigit():
+                server_info["cpu"] = f"{server_info['cpu']} 核心"
             
             plans.append(server_info)
-            
+        
         # 为所有服务器记录日志
         add_log("INFO", f"成功加载 {len(plans)} 台服务器信息")
-        for plan in plans:
-            if plan["cpu"] == "N/A" or plan["memory"] == "N/A" or plan["storage"] == "N/A":
-                add_log("WARNING", f"服务器 {plan['planCode']} ({plan['name']}) 缺少部分硬件信息")
+        
+        # 记录缺失信息的服务器
+        missing_info_servers = [
+            plan["planCode"] for plan in plans 
+            if plan["cpu"] == "N/A" or plan["memory"] == "N/A" or plan["storage"] == "N/A"
+        ]
+        
+        if missing_info_servers:
+            add_log("WARNING", f"以下服务器缺少硬件信息: {', '.join(missing_info_servers)}")
         
         return plans
     except Exception as e:

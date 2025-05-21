@@ -20,6 +20,23 @@ import { apiEvents } from "@/context/APIContext";
 // Backend API URL (update this to match your backend)
 const API_URL = 'http://localhost:5000/api';
 
+// OVH数据中心常量
+const OVH_DATACENTERS = [
+  { code: "gra", name: "格拉夫尼茨", region: "法国" },
+  { code: "sbg", name: "斯特拉斯堡", region: "法国" },
+  { code: "rbx", name: "鲁贝", region: "法国" },
+  { code: "bhs", name: "博阿尔诺", region: "加拿大" },
+  { code: "hil", name: "希尔斯伯勒", region: "美国" },
+  { code: "vin", name: "维也纳", region: "美国" },
+  { code: "lim", name: "利马索尔", region: "塞浦路斯" },
+  { code: "sgp", name: "新加坡", region: "新加坡" },
+  { code: "syd", name: "悉尼", region: "澳大利亚" },
+  { code: "waw", name: "华沙", region: "波兰" },
+  { code: "fra", name: "法兰克福", region: "德国" },
+  { code: "lon", name: "伦敦", region: "英国" },
+  { code: "eri", name: "厄斯沃尔", region: "英国" }
+];
+
 interface ServerOption {
   label: string;
   value: string;
@@ -38,6 +55,8 @@ interface ServerPlan {
   availableOptions: ServerOption[];
   datacenters: {
     datacenter: string;
+    dcName: string;
+    region: string;
     availability: string;
   }[];
 }
@@ -72,47 +91,31 @@ const ServersPage = () => {
         vrackBandwidth: formatServerSpec(server.vrackBandwidth, "内部带宽")
       }));
       
+      // 为每个服务器添加所有OVH数据中心
+      formattedServers.forEach(server => {
+        // 获取服务器已有的数据中心代码，转换为小写
+        const existingDcCodes = new Map(
+          server.datacenters.map(dc => [dc.datacenter.toLowerCase(), dc.availability])
+        );
+        
+        // 使用固定的OVH数据中心列表替换服务器的数据中心列表
+        server.datacenters = OVH_DATACENTERS.map(dc => {
+          // 检查服务器是否已有此数据中心的可用性信息
+          const availability = existingDcCodes.get(dc.code) || "unknown";
+          return {
+            datacenter: dc.code.toUpperCase(),
+            dcName: dc.name,
+            region: dc.region,
+            availability: availability
+          };
+        });
+      });
+      
       setServers(formattedServers);
       setFilteredServers(formattedServers);
       
-      // Extract unique datacenters and deduplicate them
-      const dcSet = new Set<string>();
-      formattedServers.forEach((server: ServerPlan) => {
-        const uniqueDcs = new Set<string>();
-        server.datacenters.forEach(dc => {
-          uniqueDcs.add(dc.datacenter);
-        });
-        // 更新全局数据中心集合
-        uniqueDcs.forEach(dc => dcSet.add(dc));
-        
-        // 用去重后的数据中心替换原数据
-        const uniqueDatacenters = Array.from(uniqueDcs).map(dcName => {
-          // 查找相同数据中心的最佳可用性
-          const allMatches = server.datacenters.filter(d => d.datacenter === dcName);
-          let bestAvailability = "unavailable";
-          
-          // 优先选择非不可用状态
-          allMatches.forEach(match => {
-            if (match.availability !== "unavailable") {
-              if (bestAvailability === "unavailable" || 
-                  match.availability.includes("1H-high") || 
-                  (match.availability.includes("1H-low") && !bestAvailability.includes("1H-high"))) {
-                bestAvailability = match.availability;
-              }
-            }
-          });
-          
-          return {
-            datacenter: dcName,
-            availability: bestAvailability
-          };
-        });
-        
-        // 这里我们不直接修改原对象，而是在处理后将结果赋值
-        server.datacenters = uniqueDatacenters;
-      });
-      
-      setDatacenters(Array.from(dcSet));
+      // 设置全局数据中心列表 - 直接使用OVH_DATACENTERS
+      setDatacenters(OVH_DATACENTERS.map(dc => dc.code.toUpperCase()));
       
     } catch (error) {
       console.error("Error fetching servers:", error);
@@ -147,6 +150,12 @@ const ServersPage = () => {
       } else if (!isNaN(Number(value))) {
         return `${value} 核心`;
       }
+      
+      // 专门处理core关键词
+      if (value.toLowerCase().includes("core")) {
+        return value;
+      }
+      
       return value;
     }
     
@@ -162,15 +171,23 @@ const ServersPage = () => {
       // 尝试处理纯数字
       if (!isNaN(Number(value))) {
         const num = Number(value);
+        // 大于1000的可能是MB为单位
         if (num > 1000) {
           return `${(num/1024).toFixed(0)} GB`;
         }
         return `${num} GB`;
       }
       
-      // KS/RISE系列可能用文本描述内存大小
-      if (value.match(/\d+/)) {
-        return value;
+      // 尝试提取数字部分
+      const numMatch = value.match(/(\d+)/);
+      if (numMatch && numMatch[1]) {
+        const num = parseInt(numMatch[1]);
+        if (num > 0) {
+          if (num > 1000) {
+            return `${(num/1024).toFixed(0)} GB`;
+          }
+          return `${num} GB`;
+        }
       }
       
       return value;
@@ -234,6 +251,7 @@ const ServersPage = () => {
     setIsCheckingAvailability(true);
     try {
       const response = await axios.get(`${API_URL}/availability/${planCode}`);
+      console.log(`获取到 ${planCode} 的可用性数据:`, response.data);
       
       setAvailability(prev => ({
         ...prev,
@@ -365,9 +383,15 @@ const ServersPage = () => {
               className="cyber-input w-full"
             >
               <option value="all">所有数据中心</option>
-              {datacenters.map((dc) => (
-                <option key={dc} value={dc}>{dc}</option>
-              ))}
+              {datacenters.map((dc) => {
+                // 查找对应的数据中心完整信息
+                const dcInfo = OVH_DATACENTERS.find(item => item.code.toUpperCase() === dc);
+                return (
+                  <option key={dc} value={dc}>
+                    {dc} - {dcInfo ? `${dcInfo.name} (${dcInfo.region})` : dc}
+                  </option>
+                );
+              })}
             </select>
           </div>
           
@@ -551,16 +575,22 @@ const ServersPage = () => {
                     <div className="grid grid-cols-3 gap-px bg-cyber-accent/10 p-px">
                       {server.datacenters.map((dc) => {
                         // Get availability from our availability state, or use the default from the server
-                        const availStatus = availability[server.planCode]?.[dc.datacenter] || dc.availability;
+                        const availStatus = availability[server.planCode]?.[dc.datacenter.toLowerCase()] || dc.availability;
                         
+                        let statusText = "未知";
                         let statusClass = "text-yellow-400";
                         let bgClass = "bg-cyber-grid/10";
                         
-                        if (availStatus === "available") {
+                        // 根据不同的可用性状态设置样式和文本
+                        if (availStatus === "unavailable") {
+                          statusText = "不可用";
+                          statusClass = "text-red-400";
+                        } else if (availStatus && availStatus !== "unknown") {
+                          // 如果有值且不是"unknown"，则显示为可用
+                          statusText = availStatus.includes("1H") ? 
+                                     `可用(${availStatus})` : "可用";
                           statusClass = "text-green-400";
                           bgClass = "bg-green-500/10";
-                        } else if (availStatus === "unavailable") {
-                          statusClass = "text-red-400";
                         }
                         
                         return (
@@ -569,14 +599,14 @@ const ServersPage = () => {
                             className={`p-2 text-center ${bgClass}`}
                           >
                             <div className="text-xs font-medium mb-1">{dc.datacenter}</div>
+                            <div className="text-xs text-cyber-muted mb-1">{dc.dcName} ({dc.region})</div>
                             <div className={`text-xs ${statusClass} mb-1`}>
-                              {availStatus === "available" ? "可用" : 
-                              availStatus === "unavailable" ? "不可用" : "未知"}
+                              {statusText}
                             </div>
                             
-                            {availStatus === "available" && (
+                            {availStatus && availStatus !== "unavailable" && availStatus !== "unknown" && (
                               <Button
-                                onClick={() => addToQueue(server, dc.datacenter)}
+                                onClick={() => addToQueue(server, dc.datacenter.toLowerCase())}
                                 disabled={!isAuthenticated}
                                 variant="cyber-filled"
                                 size="sm"
@@ -642,18 +672,30 @@ const ServersPage = () => {
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {server.datacenters.map((dc) => {
-                        const availStatus = availability[server.planCode]?.[dc.datacenter] || dc.availability;
+                        const availStatus = availability[server.planCode]?.[dc.datacenter.toLowerCase()] || dc.availability;
                         let statusColor = "bg-yellow-500/20 border-yellow-500/30 text-yellow-400";
                         
-                        if (availStatus === "available") {
-                          statusColor = "bg-green-500/20 border-green-500/30 text-green-400";
-                        } else if (availStatus === "unavailable") {
+                        // 根据不同的可用性状态设置样式
+                        if (availStatus === "unavailable") {
                           statusColor = "bg-red-500/20 border-red-500/30 text-red-400";
+                        } else if (availStatus && availStatus !== "unknown") {
+                          statusColor = "bg-green-500/20 border-green-500/30 text-green-400";
                         }
                         
                         return (
-                          <span key={dc.datacenter} className={`text-xs px-1.5 py-0.5 rounded border ${statusColor}`}>
-                            {dc.datacenter}
+                          <span key={dc.datacenter} className={`text-xs px-1.5 py-0.5 rounded border ${statusColor} mr-1 mb-1`} title={`${dc.dcName} (${dc.region})`}>
+                            <span className="font-medium">{dc.datacenter}</span>
+                            {availStatus === "unavailable" && 
+                              <span className="ml-1">不可用</span>
+                            }
+                            {availStatus === "unknown" && 
+                              <span className="ml-1">未知</span>
+                            }
+                            {availStatus && availStatus !== "unavailable" && availStatus !== "unknown" && (
+                              <span className="ml-1">
+                                {availStatus.includes("1H") ? `(${availStatus})` : "可用"}
+                              </span>
+                            )}
                           </span>
                         );
                       })}
@@ -670,13 +712,19 @@ const ServersPage = () => {
                       >
                         检查可用性
                       </Button>
-                      {server.datacenters.some(dc => availability[server.planCode]?.[dc.datacenter] === "available" || dc.availability === "available") && (
+                      {server.datacenters.some(dc => {
+                        const status = availability[server.planCode]?.[dc.datacenter.toLowerCase()] || dc.availability;
+                        return status && status !== "unavailable" && status !== "unknown";
+                      }) && (
                         <Button
                           onClick={() => {
                             const availableDc = server.datacenters.find(
-                              dc => availability[server.planCode]?.[dc.datacenter] === "available" || dc.availability === "available"
+                              dc => {
+                                const status = availability[server.planCode]?.[dc.datacenter.toLowerCase()] || dc.availability;
+                                return status && status !== "unavailable" && status !== "unknown";
+                              }
                             );
-                            if (availableDc) addToQueue(server, availableDc.datacenter);
+                            if (availableDc) addToQueue(server, availableDc.datacenter.toLowerCase());
                           }}
                           disabled={!isAuthenticated}
                           variant="cyber-filled"
