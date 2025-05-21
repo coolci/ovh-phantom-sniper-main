@@ -88,6 +88,7 @@ const Layout = () => {
                 exit={{ opacity: 0 }}
                 className="fixed inset-0 bg-black z-30"
                 onClick={() => setSidebarOpen(false)}
+                style={{ pointerEvents: 'auto' }}
               />
               
               {/* 侧边栏 */}
@@ -99,10 +100,60 @@ const Layout = () => {
                 className="fixed inset-y-0 left-0 z-40"
               >
                 <Sidebar onToggle={toggleSidebar} isOpen={sidebarOpen} />
+                
+                {/* 添加关闭按钮 */}
+                <button 
+                  onClick={() => setSidebarOpen(false)}
+                  className="absolute top-4 right-4 w-8 h-8 bg-cyber-bg border border-cyber-accent/30 rounded-md flex items-center justify-center text-cyber-text hover:bg-cyber-accent/10 transition-colors"
+                  aria-label="关闭侧边栏"
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </motion.div>
             </>
           )}
         </AnimatePresence>
+
+        {/* 移动端贴边呼出按钮 */}
+        {isMobile && !sidebarOpen && (
+          <div 
+            onClick={toggleSidebar}
+            className="fixed right-0 top-1/3 z-40 cursor-pointer"
+          >
+            <div className="flex items-center">
+              <div className="h-16 w-4 bg-cyber-bg/80 border border-r-0 border-cyber-accent/50 rounded-l-md flex items-center justify-center">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                  className="text-cyber-accent"
+                >
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </div>
+              <div className="h-24 w-1.5 bg-cyber-accent/80 rounded-l-sm shadow-neon"></div>
+            </div>
+          </div>
+        )}
 
         <main 
           className={`flex-1 py-6 px-4 sm:px-6 transition-all duration-300 ${
