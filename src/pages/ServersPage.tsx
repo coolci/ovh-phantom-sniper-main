@@ -75,13 +75,43 @@ const ServersPage = () => {
       setServers(formattedServers);
       setFilteredServers(formattedServers);
       
-      // Extract unique datacenters
+      // Extract unique datacenters and deduplicate them
       const dcSet = new Set<string>();
       formattedServers.forEach((server: ServerPlan) => {
+        const uniqueDcs = new Set<string>();
         server.datacenters.forEach(dc => {
-          dcSet.add(dc.datacenter);
+          uniqueDcs.add(dc.datacenter);
         });
+        // 更新全局数据中心集合
+        uniqueDcs.forEach(dc => dcSet.add(dc));
+        
+        // 用去重后的数据中心替换原数据
+        const uniqueDatacenters = Array.from(uniqueDcs).map(dcName => {
+          // 查找相同数据中心的最佳可用性
+          const allMatches = server.datacenters.filter(d => d.datacenter === dcName);
+          let bestAvailability = "unavailable";
+          
+          // 优先选择非不可用状态
+          allMatches.forEach(match => {
+            if (match.availability !== "unavailable") {
+              if (bestAvailability === "unavailable" || 
+                  match.availability.includes("1H-high") || 
+                  (match.availability.includes("1H-low") && !bestAvailability.includes("1H-high"))) {
+                bestAvailability = match.availability;
+              }
+            }
+          });
+          
+          return {
+            datacenter: dcName,
+            availability: bestAvailability
+          };
+        });
+        
+        // 这里我们不直接修改原对象，而是在处理后将结果赋值
+        server.datacenters = uniqueDatacenters;
       });
+      
       setDatacenters(Array.from(dcSet));
       
     } catch (error) {
@@ -96,44 +126,98 @@ const ServersPage = () => {
   const formatServerSpec = (value: string, type: string): string => {
     if (!value || value === "N/A") return "暂无数据";
     
-    // For CPU, try to format properly
+    // 清理值
+    value = value.trim();
+    
+    // 对于CPU，尝试格式化
     if (type === "CPU") {
+      // 已经有完整描述的情况
+      if (value.toLowerCase().includes("intel") || 
+          value.toLowerCase().includes("amd") || 
+          value.toLowerCase().includes("ryzen") || 
+          value.toLowerCase().includes("xeon") || 
+          value.toLowerCase().includes("epyc")) {
+        return value;
+      }
+      
+      // 尝试从不同格式中提取信息
       if (value.includes("x")) {
-        return value; // Already in the format "4 x Intel Xeon"
+        // 已经是格式 "4 x Intel Xeon"
+        return value;
       } else if (!isNaN(Number(value))) {
         return `${value} 核心`;
       }
       return value;
     }
     
-    // For memory, convert to GB if needed
+    // 对于内存，转换为GB表示
     if (type === "内存") {
-      if (value.toLowerCase().includes("gb")) {
+      // 已经包含单位
+      if (value.toLowerCase().includes("gb") || 
+          value.toLowerCase().includes("mb") || 
+          value.toLowerCase().includes("tb")) {
         return value;
-      } else if (!isNaN(Number(value))) {
-        return `${value} GB`;
-      }
-      return value;
-    }
-    
-    // For storage
-    if (type === "存储") {
-      if (value.toLowerCase().includes("gb") || value.toLowerCase().includes("tb")) {
-        return value;
-      } else if (!isNaN(Number(value))) {
+      } 
+      
+      // 尝试处理纯数字
+      if (!isNaN(Number(value))) {
         const num = Number(value);
-        return num >= 1000 ? `${num/1000} TB` : `${num} GB`;
+        if (num > 1000) {
+          return `${(num/1024).toFixed(0)} GB`;
+        }
+        return `${num} GB`;
       }
+      
+      // KS/RISE系列可能用文本描述内存大小
+      if (value.match(/\d+/)) {
+        return value;
+      }
+      
       return value;
     }
     
-    // For bandwidth
-    if (type.includes("带宽")) {
-      if (value.toLowerCase().includes("gbps") || value.toLowerCase().includes("mbps")) {
+    // 对于存储
+    if (type === "存储") {
+      // 已经包含单位
+      if (value.toLowerCase().includes("gb") || 
+          value.toLowerCase().includes("tb") || 
+          value.toLowerCase().includes("ssd") || 
+          value.toLowerCase().includes("hdd") || 
+          value.toLowerCase().includes("nvme")) {
         return value;
-      } else if (!isNaN(Number(value))) {
-        return `${value} Mbps`;
       }
+      
+      // 尝试处理纯数字
+      if (!isNaN(Number(value))) {
+        const num = Number(value);
+        if (num >= 1000) {
+          return `${(num/1000).toFixed(1)} TB`;
+        }
+        return `${num} GB`;
+      }
+      
+      return value;
+    }
+    
+    // 对于带宽
+    if (type.includes("带宽")) {
+      // 已经包含单位
+      if (value.toLowerCase().includes("gbps") || 
+          value.toLowerCase().includes("mbps") || 
+          value.toLowerCase().includes("gbit") || 
+          value.toLowerCase().includes("mbit")) {
+        return value;
+      }
+      
+      // 尝试处理纯数字
+      if (!isNaN(Number(value))) {
+        const num = Number(value);
+        if (num >= 1000) {
+          return `${(num/1000).toFixed(1)} Gbps`;
+        }
+        return `${num} Mbps`;
+      }
+      
       return value;
     }
     

@@ -1,4 +1,3 @@
-
 import os
 import time
 import json
@@ -408,20 +407,104 @@ def load_server_list():
                 "availableOptions": available_options
             }
             
-            # Extract hardware details
-            for prop in plan.get("details", {}).get("properties", []):
-                if prop.get("name") == "cpu":
-                    server_info["cpu"] = prop.get("value", "N/A")
-                elif prop.get("name") == "memory":
-                    server_info["memory"] = prop.get("value", "N/A")
-                elif prop.get("name") == "storage":
-                    server_info["storage"] = prop.get("value", "N/A")
-                elif prop.get("name") == "bandwidth":
-                    server_info["bandwidth"] = prop.get("value", "N/A")
-                elif prop.get("name") == "vrackBandwidth":
-                    server_info["vrackBandwidth"] = prop.get("value", "N/A")
+            # 1. 尝试从properties中提取硬件详情
+            try:
+                for prop in plan.get("details", {}).get("properties", []):
+                    prop_name = prop.get("name", "").lower()
+                    value = prop.get("value", "N/A")
+                    
+                    if "cpu" in prop_name:
+                        server_info["cpu"] = value
+                    elif "memory" in prop_name or "ram" in prop_name:
+                        server_info["memory"] = value
+                    elif "storage" in prop_name or "disk" in prop_name or "hdd" in prop_name or "ssd" in prop_name:
+                        server_info["storage"] = value
+                    elif "bandwidth" in prop_name:
+                        if "vrack" in prop_name or "private" in prop_name:
+                            server_info["vrackBandwidth"] = value
+                        else:
+                            server_info["bandwidth"] = value
+            except Exception as e:
+                add_log("WARNING", f"Error parsing properties for {plan_code}: {str(e)}")
+            
+            # 2. 尝试从plan格式2中获取信息 (服务器类别、具体规格)
+            try:
+                # 先尝试从名称解析硬件信息
+                server_name = server_info["name"]
+                
+                # 检查名称中是否包含CPU信息
+                if server_info["cpu"] == "N/A" and "|" in server_name:
+                    cpu_part = server_name.split("|")[1].strip()
+                    if cpu_part and server_info["cpu"] == "N/A":
+                        server_info["cpu"] = cpu_part
+                
+                # 从产品附加信息中获取
+                additional_info = plan.get("product", {}).get("configurations", [])
+                for config in additional_info:
+                    config_name = config.get("name", "").lower()
+                    value = config.get("value")
+                    
+                    if value:
+                        if "cpu" in config_name:
+                            server_info["cpu"] = value
+                        elif "memory" in config_name or "ram" in config_name:
+                            server_info["memory"] = value
+                        elif "storage" in config_name or "disk" in config_name:
+                            server_info["storage"] = value
+                        elif "bandwidth" in config_name:
+                            server_info["bandwidth"] = value
+            except Exception as e:
+                add_log("WARNING", f"Error parsing product configurations for {plan_code}: {str(e)}")
+            
+            # 3. 尝试从plan.description解析信息
+            try:
+                description = plan.get("description", "")
+                if description:
+                    parts = description.split(",")
+                    for part in parts:
+                        part = part.strip().lower()
+                        if "cpu" in part and server_info["cpu"] == "N/A":
+                            server_info["cpu"] = part
+                        elif ("ram" in part or "gb" in part or "memory" in part) and server_info["memory"] == "N/A":
+                            server_info["memory"] = part
+                        elif ("hdd" in part or "ssd" in part or "nvme" in part or "storage" in part) and server_info["storage"] == "N/A":
+                            server_info["storage"] = part
+                        elif "bandwidth" in part and server_info["bandwidth"] == "N/A":
+                            server_info["bandwidth"] = part
+            except Exception as e:
+                add_log("WARNING", f"Error parsing description for {plan_code}: {str(e)}")
+            
+            # 4. 从pricing获取信息 (一些API响应将硬件信息放在这里)
+            try:
+                pricing_info = plan.get("pricing", {}).get("configurations", [])
+                for price_config in pricing_info:
+                    config_name = price_config.get("name", "").lower()
+                    value = price_config.get("value")
+                    
+                    if value:
+                        if "processor" in config_name and server_info["cpu"] == "N/A":
+                            server_info["cpu"] = value
+                        elif "memory" in config_name and server_info["memory"] == "N/A":
+                            server_info["memory"] = value
+                        elif "storage" in config_name and server_info["storage"] == "N/A":
+                            server_info["storage"] = value
+            except Exception as e:
+                add_log("WARNING", f"Error parsing pricing for {plan_code}: {str(e)}")
+            
+            # 处理KS/RISE系列服务器名称格式
+            if server_info["cpu"] == "N/A":
+                name_parts = server_info["name"].split("|")
+                if len(name_parts) > 1:
+                    # 去除首尾空格
+                    server_info["cpu"] = name_parts[1].strip()
             
             plans.append(server_info)
+            
+        # 为所有服务器记录日志
+        add_log("INFO", f"成功加载 {len(plans)} 台服务器信息")
+        for plan in plans:
+            if plan["cpu"] == "N/A" or plan["memory"] == "N/A" or plan["storage"] == "N/A":
+                add_log("WARNING", f"服务器 {plan['planCode']} ({plan['name']}) 缺少部分硬件信息")
         
         return plans
     except Exception as e:
