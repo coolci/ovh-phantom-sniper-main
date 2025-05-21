@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAPI } from "@/context/APIContext";
@@ -49,20 +48,6 @@ const Sidebar = ({ onToggle, isOpen }: SidebarProps) => {
             <div className="text-xs text-cyber-muted">OVH服务器抢购平台</div>
           </div>
         </Link>
-        <button 
-          onClick={onToggle}
-          className="text-cyber-muted hover:text-cyber-accent p-1.5 rounded-full transition-colors border border-transparent hover:border-cyber-accent/30 hover:bg-cyber-grid"
-          aria-label={isOpen ? "关闭菜单" : "打开菜单"}
-          title={isOpen ? "关闭菜单" : "打开菜单"}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            {isOpen ? (
-              <path d="M15 18l-6-6 6-6"/>
-            ) : (
-              <path d="m9 18 6-6-6-6"/>
-            )}
-          </svg>
-        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto py-4 px-2 space-y-2">
