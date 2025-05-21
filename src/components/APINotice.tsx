@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -32,7 +31,7 @@ const APINotice = () => {
         </div>
         <Link
           to="/settings"
-          className="cyber-button text-xs px-3 py-1"
+          className="cyber-button text-xs px-3 py-1 flex items-center justify-center"
         >
           配置 API
         </Link>
