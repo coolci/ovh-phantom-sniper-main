@@ -1,10 +1,20 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 
 // Backend API URL (update this to match your backend)
 const API_URL = 'http://localhost:5000/api';
+
+// 创建一个事件总线，用于在API认证状态变化时通知其他组件
+export const apiEvents = {
+  onAuthChanged: (callback: (isAuthenticated: boolean) => void) => {
+    window.addEventListener('api-auth-changed', ((e: CustomEvent) => callback(e.detail)) as EventListener);
+    return () => window.removeEventListener('api-auth-changed', ((e: CustomEvent) => callback(e.detail)) as EventListener);
+  },
+  emitAuthChanged: (isAuthenticated: boolean) => {
+    window.dispatchEvent(new CustomEvent('api-auth-changed', { detail: isAuthenticated }));
+  }
+};
 
 // Define API Context structure
 interface APIContextType {
@@ -67,10 +77,12 @@ export const API_Provider = ({ children }: { children: ReactNode }) => {
           setZone(data.zone || 'IE');
           
           setIsAuthenticated(true);
+          apiEvents.emitAuthChanged(true);
         }
       } catch (error) {
         console.error('Failed to load API keys:', error);
         setIsAuthenticated(false);
+        apiEvents.emitAuthChanged(false);
       } finally {
         setIsLoading(false);
       }
@@ -104,6 +116,7 @@ export const API_Provider = ({ children }: { children: ReactNode }) => {
       setZone(keys.zone || 'IE');
       
       setIsAuthenticated(true);
+      apiEvents.emitAuthChanged(true);
       toast.success('API设置已保存');
     } catch (error) {
       console.error('Failed to save API keys:', error);
@@ -126,10 +139,12 @@ export const API_Provider = ({ children }: { children: ReactNode }) => {
       
       const isValid = response.data.valid;
       setIsAuthenticated(isValid);
+      apiEvents.emitAuthChanged(isValid);
       return isValid;
     } catch (error) {
       console.error('Authentication check failed:', error);
       setIsAuthenticated(false);
+      apiEvents.emitAuthChanged(false);
       return false;
     }
   };

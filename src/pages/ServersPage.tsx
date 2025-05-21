@@ -15,6 +15,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Cpu, Database, Wifi, HardDrive } from "lucide-react";
+import { apiEvents } from "@/context/APIContext";
 
 // Backend API URL (update this to match your backend)
 const API_URL = 'http://localhost:5000/api';
@@ -57,7 +58,9 @@ const ServersPage = () => {
   const fetchServers = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/servers`);
+      const response = await axios.get(`${API_URL}/servers`, {
+        params: { showApiServers: isAuthenticated }
+      });
       
       // Ensure server information is properly formatted
       const formattedServers = response.data.map((server: ServerPlan) => ({
@@ -183,9 +186,19 @@ const ServersPage = () => {
     }
   };
 
-  // Initial fetch
+  // Subscribe to API auth changes to reload servers when auth status changes
   useEffect(() => {
+    // Initial fetch
     fetchServers();
+    
+    // Subscribe to auth change events
+    const unsubscribe = apiEvents.onAuthChanged(() => {
+      fetchServers();
+    });
+    
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Apply filters when search term or datacenter changes

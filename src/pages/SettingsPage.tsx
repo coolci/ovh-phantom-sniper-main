@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAPI } from "@/context/APIContext";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const SettingsPage = () => {
+  const navigate = useNavigate();
   const { 
     appKey, 
     appSecret, 
@@ -95,6 +97,8 @@ const SettingsPage = () => {
       
       if (isValid) {
         toast.success("API设置已保存并验证");
+        // 自动导航到服务器列表页面
+        navigate("/servers");
       } else {
         toast.warning("API设置已保存，但验证失败");
       }
