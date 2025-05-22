@@ -20,21 +20,22 @@ import { apiEvents } from "@/context/APIContext";
 // Backend API URL (update this to match your backend)
 const API_URL = 'http://localhost:5000/api';
 
-// OVH数据中心常量
-const OVH_DATACENTERS = [
-  { code: "gra", name: "格拉夫尼茨", region: "法国" },
-  { code: "sbg", name: "斯特拉斯堡", region: "法国" },
-  { code: "rbx", name: "鲁贝", region: "法国" },
-  { code: "bhs", name: "博阿尔诺", region: "加拿大" },
-  { code: "hil", name: "希尔斯伯勒", region: "美国" },
-  { code: "vin", name: "维也纳", region: "美国" },
-  { code: "lim", name: "利马索尔", region: "塞浦路斯" },
-  { code: "sgp", name: "新加坡", region: "新加坡" },
-  { code: "syd", name: "悉尼", region: "澳大利亚" },
-  { code: "waw", name: "华沙", region: "波兰" },
-  { code: "fra", name: "法兰克福", region: "德国" },
-  { code: "lon", name: "伦敦", region: "英国" },
-  { code: "eri", name: "厄斯沃尔", region: "英国" }
+// Fixed list of datacenters for display purposes
+const DISPLAY_DATACENTERS = [
+  { code: "gra", name: "Gravelines", region: "Europe (France)" },
+  { code: "sbg", name: "Strasbourg", region: "Europe (France)" },
+  { code: "rbx", name: "Roubaix", region: "Europe (France)" },
+  { code: "lim", name: "Limburg", region: "Europe (Germany)" }, // Assuming this was meant for Germany (often confused with LIM in Cyprus)
+  { code: "fra", name: "Frankfurt", region: "Europe (Germany)" },
+  { code: "waw", name: "Warsaw", region: "Europe (Poland)" },
+  { code: "lon", name: "London", region: "Europe (UK)" },
+  { code: "hil", name: "Hillsboro", region: "North America (USA)" },
+  { code: "vin", name: "Vint Hill", region: "North America (USA)" }, // Corrected from Vienna
+  { code: "bhs", name: "Beauharnois", region: "North America (Canada)" },
+  { code: "sgp", name: "Singapore", region: "Asia (Singapore)" },
+  { code: "syd", name: "Sydney", region: "Oceania (Australia)" },
+  // Add any other datacenters you want to consistently display
+  // { code: "eri", name: "Erith", region: "Europe (UK)" }, // Example if needed
 ];
 
 interface ServerOption {
@@ -53,6 +54,10 @@ interface ServerPlan {
   vrackBandwidth: string;
   defaultOptions: ServerOption[];
   availableOptions: ServerOption[];
+  price: number | null;
+  currency: string | null;
+  billingCycle: string | null;
+  setupFee?: number | null; // Optional setup fee
   datacenters: {
     datacenter: string;
     dcName: string;
@@ -90,161 +95,55 @@ const ServersPage = () => {
       // 调试输出查看原始服务器数据
       console.log("原始服务器数据:", response.data);
       
-      // Ensure server information is properly formatted
-      const formattedServers = response.data.map((server: ServerPlan) => {
-        // 如果缺少数据，添加一些硬编码的示例数据以确保显示效果
-        // 在实际生产环境中，这部分应该由后端提供
-        let cpuInfo = server.cpu;
-        let memoryInfo = server.memory;
-        let storageInfo = server.storage;
-        let bandwidthInfo = server.bandwidth;
-        
-        // 如果服务器有名称包含特定型号，但没有CPU信息，则添加示例数据
-        if (!cpuInfo || cpuInfo === "N/A" || cpuInfo.trim() === "") {
-          if (server.planCode.includes("KS-")) {
-            cpuInfo = "Intel Xeon E3-1230 v6";
-          } else if (server.planCode.includes("GAME-")) {
-            cpuInfo = "Intel i7-8700K";
-          } else if (server.planCode.includes("BHS")) {
-            cpuInfo = "AMD EPYC 7351P";
-          } else {
-            // 根据服务器型号添加默认的CPU信息
-            if (server.planCode.includes("sgp")) {
-              cpuInfo = "Intel i7-6700K";
-            } else if (server.planCode.includes("40")) {
-              cpuInfo = "Intel Xeon E3-1230 v6";
-            } else if (server.planCode.includes("01")) {
-              cpuInfo = "Intel Xeon E5-1650v2";
-            } else {
-              cpuInfo = "8 核心处理器";
-            }
-          }
-        }
-        
-        // 如果没有内存信息，则添加示例数据
-        if (!memoryInfo || memoryInfo === "N/A" || memoryInfo.trim() === "") {
-          if (server.planCode.includes("KS-")) {
-            memoryInfo = "32 GB";
-          } else if (server.planCode.includes("GAME-")) {
-            memoryInfo = "64 GB";
-          } else {
-            // 根据服务器型号添加默认的内存信息
-            if (server.planCode.includes("sgp")) {
-              memoryInfo = "32 GB";
-            } else if (server.planCode.includes("40")) {
-              memoryInfo = "32 GB";
-            } else if (server.planCode.includes("01")) {
-              memoryInfo = "64 GB";
-            } else {
-              memoryInfo = "16 GB";
-            }
-          }
-        }
-        
-        // 如果没有存储信息，则添加示例数据
-        if (!storageInfo || storageInfo === "N/A" || storageInfo.trim() === "") {
-          if (server.planCode.includes("KS-")) {
-            storageInfo = "2x240GB SSD RAID";
-          } else if (server.planCode.includes("GAME-")) {
-            storageInfo = "512GB NVMe";
-          } else {
-            // 根据服务器型号添加默认的存储信息
-            if (server.planCode.includes("sgp")) {
-              storageInfo = "2TB HDD";
-            } else if (server.planCode.includes("40")) {
-              storageInfo = "1TB SSD";
-            } else if (server.planCode.includes("01")) {
-              storageInfo = "500GB NVMe";
-            } else {
-              storageInfo = "500GB SSD";
-            }
-          }
-        }
-        
-        // 如果没有带宽信息，则添加示例数据
-        if (!bandwidthInfo || bandwidthInfo === "N/A" || bandwidthInfo.trim() === "") {
-          if (server.planCode.includes("KS-")) {
-            bandwidthInfo = "500 Mbps";
-          } else if (server.planCode.includes("GAME-")) {
-            bandwidthInfo = "1 Gbps";
-          } else {
-            // 根据服务器型号添加默认的带宽信息
-            if (server.planCode.includes("sgp")) {
-              bandwidthInfo = "500 Mbps";
-            } else if (server.planCode.includes("40")) {
-              bandwidthInfo = "1 Gbps";
-            } else if (server.planCode.includes("01")) {
-              bandwidthInfo = "1 Gbps";
-            } else {
-              bandwidthInfo = "250 Mbps";
-            }
-          }
-        }
-        
-        // 返回格式化后的服务器信息
+      const rawServers: ServerPlan[] = response.data;
+
+      // Process servers to align with DISPLAY_DATACENTERS
+      const processedServers = rawServers.map((server: ServerPlan) => {
+        const apiDatacentersMap = new Map(
+          server.datacenters.map(dc => [dc.datacenter.toLowerCase(), dc.availability])
+        );
+
+        const newServerDatacenters = DISPLAY_DATACENTERS.map(displayDc => {
+          const availability = apiDatacentersMap.get(displayDc.code.toLowerCase()) || "unknown";
+          return {
+            datacenter: displayDc.code.toUpperCase(),
+            dcName: displayDc.name,
+            region: displayDc.region,
+            availability: availability,
+          };
+        });
+
         return {
           ...server,
-          cpu: formatServerSpec(cpuInfo, "CPU"),
-          memory: formatServerSpec(memoryInfo, "内存"),
-          storage: formatServerSpec(storageInfo, "存储"),
-          bandwidth: formatServerSpec(bandwidthInfo, "带宽"),
-          vrackBandwidth: formatServerSpec(server.vrackBandwidth, "内部带宽")
+          cpu: formatServerSpec(server.cpu, "CPU"),
+          memory: formatServerSpec(server.memory, "内存"),
+          storage: formatServerSpec(server.storage, "存储"),
+          bandwidth: formatServerSpec(server.bandwidth, "带宽"),
+          vrackBandwidth: formatServerSpec(server.vrackBandwidth, "内部带宽"),
+          datacenters: newServerDatacenters,
+          // Map new pricing fields, providing defaults if missing from API
+          price: server.price ?? null,
+          currency: server.currency ?? null,
+          billingCycle: server.billingCycle ?? null,
+          setupFee: server.setupFee ?? undefined, // Use undefined for optional fields if not present
         };
       });
       
-      // 为每个服务器添加所有OVH数据中心
-      formattedServers.forEach(server => {
-        // 获取服务器已有的数据中心代码，转换为小写
-        const existingDcCodes = new Map(
-          server.datacenters.map(dc => [dc.datacenter.toLowerCase(), dc.availability])
-        );
-        
-        // 使用固定的OVH数据中心列表替换服务器的数据中心列表
-        server.datacenters = OVH_DATACENTERS.map(dc => {
-          // 检查服务器是否已有此数据中心的可用性信息
-          const availability = existingDcCodes.get(dc.code) || "unknown";
-          return {
-            datacenter: dc.code.toUpperCase(),
-            dcName: dc.name,
-            region: dc.region,
-            availability: availability
-          };
-        });
-        
-        // 如果没有选项信息，添加一些示例选项
-        if (!server.defaultOptions || server.defaultOptions.length === 0) {
-          server.defaultOptions = [
-            { label: "默认OS", value: "default-os" },
-            { label: "标准配置", value: "standard-config" }
-          ];
-        }
-        
-        // 如果没有可选选项，添加一些示例可选选项
-        if (!server.availableOptions || server.availableOptions.length === 0) {
-          server.availableOptions = [
-            { label: "额外磁盘", value: "extra-disk" },
-            { label: "备份空间", value: "backup-space" },
-            { label: "DDoS防护", value: "ddos-protection" },
-            { label: "IPv6", value: "ipv6" }
-          ];
-        }
-      });
-      
       // 调试输出查看格式化后的服务器数据
-      console.log("格式化后的服务器数据:", formattedServers);
+      console.log("格式化后的服务器数据:", processedServers);
       
-      setServers(formattedServers);
-      setFilteredServers(formattedServers);
+      setServers(processedServers);
+      setFilteredServers(processedServers);
       
-      // 设置全局数据中心列表 - 直接使用OVH_DATACENTERS
-      setDatacenters(OVH_DATACENTERS.map(dc => dc.code.toUpperCase()));
+      // Populate datacenters state for the filter dropdown from DISPLAY_DATACENTERS
+      setDatacenters(DISPLAY_DATACENTERS.map(dc => dc.code.toUpperCase()));
 
-      // 初始化每个服务器的数据中心选择状态
+      // 初始化每个服务器的数据中心选择状态 based on DISPLAY_DATACENTERS
       const newSelectedDatacenters: Record<string, Record<string, boolean>> = {};
-      formattedServers.forEach(server => {
+      processedServers.forEach(server => {
         const dcState: Record<string, boolean> = {};
-        OVH_DATACENTERS.forEach(dc => {
-          dcState[dc.code.toUpperCase()] = false;
+        DISPLAY_DATACENTERS.forEach(displayDc => {
+          dcState[displayDc.code.toUpperCase()] = false;
         });
         newSelectedDatacenters[server.planCode] = dcState;
       });
@@ -259,119 +158,171 @@ const ServersPage = () => {
   };
 
   // Format server specifications for better display
-  const formatServerSpec = (value: string, type: string): string => {
-    if (!value || value === "N/A") return "暂无数据";
-    
-    // 清理值
-    value = value.trim();
-    
-    // 对于CPU，尝试格式化
+  const formatServerSpec = (rawValue: string | number, type: string): string => {
+    if (rawValue === null || rawValue === undefined || String(rawValue).toUpperCase() === "N/A" || String(rawValue).trim() === "") {
+      return "暂无数据";
+    }
+
+    let value = String(rawValue).trim();
+    const lowerValue = value.toLowerCase();
+
     if (type === "CPU") {
-      // 已经有完整描述的情况
-      if (value.toLowerCase().includes("intel") || 
-          value.toLowerCase().includes("amd") || 
-          value.toLowerCase().includes("ryzen") || 
-          value.toLowerCase().includes("xeon") || 
-          value.toLowerCase().includes("epyc")) {
-        return value;
+      // Prioritize full model names
+      if (/\b(intel|amd|xeon|epyc|ryzen|i\d-\d{4,}|atom)\b/i.test(lowerValue)) {
+        return value.replace(/\s+/g, ' '); // Normalize spacing
+      }
+
+      // Regex for patterns like "8c/16t @ 3.0GHz", "8c @ 3.0GHz", "4 cores", "8 vCores"
+      const cpuPattern = /(\d+)\s*(?:c(?:ores)?|\s*vcpu|\s*vcore[s]?)(?:\s*\/s*(\d+)\s*t(?:hreads)?)?(?:\s*@\s*([\d.]+)\s*GHz)?/i;
+      const match = lowerValue.match(cpuPattern);
+
+      if (match) {
+        const cores = match[1];
+        const threads = match[2];
+        const freq = match[3];
+        let result = `${cores} Cores`;
+        if (threads) result += ` / ${threads} Threads`;
+        if (freq) result += ` @ ${freq} GHz`;
+        return result;
       }
       
-      // 尝试从不同格式中提取信息
-      if (value.includes("x")) {
-        // 已经是格式 "4 x Intel Xeon"
-        return value;
-      } else if (!isNaN(Number(value))) {
-        return `${value} 核心`;
+      // Handle "2x Intel Xeon ..." or "1x AMD EPYC ..."
+      const multiCpuPattern = /^(\d+)\s*x\s*(.*)/i;
+      const multiMatch = value.match(multiCpuPattern);
+      if (multiMatch) {
+          return `${multiMatch[1]} x ${multiMatch[2]}`;
+      }
+
+      // If it's just a number, assume cores
+      if (/^\d+$/.test(value)) {
+        return `${value} Cores`;
       }
       
-      // 专门处理core关键词
-      if (value.toLowerCase().includes("core")) {
+      // Fallback for "X x Y" or "N x Something" which might be CPU descriptions
+      if (lowerValue.includes('x') && lowerValue.length < 30) { // Heuristic for short "N x CPU_TYPE"
         return value;
       }
-      
-      return value;
+
+      return value; // Return original if no specific pattern matches
     }
-    
-    // 对于内存，转换为GB表示
+
     if (type === "内存") {
-      // 已经包含单位
-      if (value.toLowerCase().includes("gb") || 
-          value.toLowerCase().includes("mb") || 
-          value.toLowerCase().includes("tb")) {
-        return value;
-      } 
-      
-      // 尝试处理纯数字
-      if (!isNaN(Number(value))) {
-        const num = Number(value);
-        // 大于1000的可能是MB为单位
-        if (num > 1000) {
-          return `${(num/1024).toFixed(0)} GB`;
-        }
-        return `${num} GB`;
+      const ramPattern = /(\d+(?:\.\d+)?)\s*(TB|GB|MB|T|G|M|To|Go|Mo)/i;
+      const match = lowerValue.match(ramPattern);
+      if (match) {
+        let amount = parseFloat(match[1]);
+        const unit = match[2].toUpperCase();
+        if (unit.startsWith("T")) return `${amount} TB RAM`;
+        if (unit.startsWith("M")) return `${amount} MB RAM`;
+        // Default to GB for G, GO
+        return `${amount} GB RAM`;
       }
-      
-      // 尝试提取数字部分
-      const numMatch = value.match(/(\d+)/);
-      if (numMatch && numMatch[1]) {
-        const num = parseInt(numMatch[1]);
-        if (num > 0) {
-          if (num > 1000) {
-            return `${(num/1024).toFixed(0)} GB`;
-          }
-          return `${num} GB`;
+      // If just a number, assume GB, if very large, assume MB and convert
+      if (/^\d+$/.test(value)) {
+        const num = parseInt(value, 10);
+        if (num > 1024*4) { // Heuristic: if > 4096, likely MB for very large RAM amounts not specified in GB
+             return `${(num / 1024).toFixed(0)} GB RAM`;
         }
+        return `${num} GB RAM`;
       }
-      
-      return value;
+      return value.toUpperCase().endsWith("RAM") ? value : `${value} RAM`;
     }
-    
-    // 对于存储
+
     if (type === "存储") {
-      // 已经包含单位
-      if (value.toLowerCase().includes("gb") || 
-          value.toLowerCase().includes("tb") || 
-          value.toLowerCase().includes("ssd") || 
-          value.toLowerCase().includes("hdd") || 
-          value.toLowerCase().includes("nvme")) {
-        return value;
-      }
-      
-      // 尝试处理纯数字
-      if (!isNaN(Number(value))) {
-        const num = Number(value);
-        if (num >= 1000) {
-          return `${(num/1000).toFixed(1)} TB`;
+      // Normalize common terms
+      let normValue = lowerValue
+        .replace(/\s*x\s*/g, 'x') // 2 x 1TB -> 2x1TB
+        .replace(/(\d+)\s*(tb|gb|mb|go|to|mo)/ig, '$1$2') // 1 TB -> 1TB
+        .replace(/sata|sas/ig, 'HDD') // Treat SATA/SAS as HDD for simplicity unless SSD is mentioned
+        .replace(/hard drive/ig, 'HDD');
+
+      const parts = normValue.split(/\s*\+\s*|\s*,\s*/); // Split by + or ,
+      const formattedParts: string[] = [];
+
+      for (const part of parts) {
+        const diskPattern = /(\d*x)?(\d+(?:\.\d+)?)?\s*(tb|gb|mb|go|to|mo)?\s*(nvme|ssd|hdd|flash)?/i;
+        const match = part.match(diskPattern);
+        
+        if (match) {
+          let count = match[1] ? match[1].toLowerCase().replace('x', '') : '1';
+          if (count === '') count = '1';
+          
+          let size = match[2] ? parseFloat(match[2]) : null;
+          let unit = match[3] ? match[3].toUpperCase() : null;
+          let diskType = match[4] ? match[4].toUpperCase() : null;
+
+          let currentPart = "";
+          if (count !== '1') currentPart += `${count}x`;
+          
+          if (size && unit) {
+            if (unit.startsWith("T")) currentPart += `${size}TB`;
+            else if (unit.startsWith("M")) currentPart += `${size}MB`;
+            else currentPart += `${size}GB`; // Default GB
+          } else if (size) {
+             currentPart += `${size}GB`; // Assume GB if no unit but size is present
+          }
+
+
+          if (diskType) {
+            currentPart += ` ${diskType}`;
+          } else if (part.includes("ssd")) {
+            currentPart += ` SSD`;
+          } else if (part.includes("nvme")) {
+            currentPart += ` NVMe`;
+          } else if (part.includes("hdd")) {
+            currentPart += ` HDD`;
+          } else {
+            currentPart += ` Storage`; // Generic if type unknown
+          }
+          formattedParts.push(currentPart.trim());
+        } else if (part.trim()) {
+            // Fallback for complex strings or unparsable parts
+            let currentPart = part.trim();
+            if (/\d/.test(currentPart) && !/(tb|gb|mb|ssd|hdd|nvme)/i.test(currentPart)) {
+                 // If it has numbers but no units/types, assume GB and generic storage
+                 currentPart = currentPart.replace(/(\d+)/, '$1GB');
+                 currentPart += ' Storage';
+            }
+            formattedParts.push(currentPart);
         }
-        return `${num} GB`;
+      }
+
+      if (formattedParts.length > 0) {
+        return formattedParts.join(" + ").replace(/\s+/g, ' '); // Normalize spacing
       }
       
+      // Fallback if original value was complex
+      if (value.length > 0 && /\d/.test(value)) return value; // Return original if it had numbers and was not parsed
+      return "暂无数据"; // Final fallback
+    }
+
+    if (type.includes("带宽")) { // Handles "带宽" and "内部带宽"
+      const bwPattern = /(\d+(?:\.\d+)?)\s*(TBPS|GBPS|MBPS|TBIT|GBIT|MBIT|T|G|M)/i;
+      const match = lowerValue.match(bwPattern);
+      if (match) {
+        const amount = parseFloat(match[1]);
+        const unit = match[2].toUpperCase();
+        if (unit.startsWith("T")) return `${amount} Tbps`;
+        if (unit.startsWith("M")) return `${amount} Mbps`;
+        // Default to Gbps for G, GBIT
+        return `${amount} Gbps`;
+      }
+      // If just a number
+      if (/^\d+$/.test(value)) {
+        const num = parseInt(value, 10);
+        if (num >= 1000 && num % 1000 === 0 && type === "带宽") return `${num / 1000} Gbps`; // e.g. 1000 -> 1 Gbps for public
+        if (num >= 1000 && num % 1000 === 0 && type === "内部带宽") return `${num / 1000} Gbps`;// e.g. 10000 -> 10 Gbps for vRack
+        if (num < 100 && num > 5 && type === "带宽") return `${num} Gbps`; // Heuristic: 1, 2, 10 are usually Gbps for public
+        return `${num} Mbps`; // Default to Mbps for smaller numbers or vRack if not clearly Gbps
+      }
+      // Handle "Standard", "High" etc. if API provides them
+      if (["standard", "high", "premium", "unlimited", "illimité"].includes(lowerValue)) {
+        return value.charAt(0).toUpperCase() + value.slice(1);
+      }
       return value;
     }
-    
-    // 对于带宽
-    if (type.includes("带宽")) {
-      // 已经包含单位
-      if (value.toLowerCase().includes("gbps") || 
-          value.toLowerCase().includes("mbps") || 
-          value.toLowerCase().includes("gbit") || 
-          value.toLowerCase().includes("mbit")) {
-        return value;
-      }
-      
-      // 尝试处理纯数字
-      if (!isNaN(Number(value))) {
-        const num = Number(value);
-        if (num >= 1000) {
-          return `${(num/1000).toFixed(1)} Gbps`;
-        }
-        return `${num} Mbps`;
-      }
-      
-      return value;
-    }
-    
-    return value;
+
+    return value; // Fallback for unknown types
   };
 
   // Check availability for a specific server plan
@@ -383,8 +334,28 @@ const ServersPage = () => {
     
     setIsCheckingAvailability(true);
     try {
-      const response = await axios.get(`${API_URL}/availability/${planCode}`);
-      console.log(`获取到 ${planCode} 的可用性数据:`, response.data);
+      const currentPlanOptions = selectedOptions[planCode];
+      const apiParams: Record<string, string> = {};
+
+      if (currentPlanOptions && currentPlanOptions.length > 0) {
+        currentPlanOptions.forEach(optionString => {
+          if (optionString.includes('=')) {
+            const [key, ...valueParts] = optionString.split('=');
+            apiParams[key] = valueParts.join('=');
+          } else {
+            apiParams[optionString] = 'true';
+          }
+        });
+      }
+
+      let response;
+      if (Object.keys(apiParams).length > 0) {
+        response = await axios.get(`${API_URL}/availability/${planCode}`, { params: apiParams });
+      } else {
+        response = await axios.get(`${API_URL}/availability/${planCode}`);
+      }
+      
+      console.log(`获取到 ${planCode} 的可用性数据 (选项: ${JSON.stringify(apiParams)}):`, response.data);
       
       setAvailability(prev => ({
         ...prev,
@@ -601,15 +572,11 @@ const ServersPage = () => {
               className="cyber-input w-full"
             >
               <option value="all">所有数据中心</option>
-              {datacenters.map((dc) => {
-                // 查找对应的数据中心完整信息
-                const dcInfo = OVH_DATACENTERS.find(item => item.code.toUpperCase() === dc);
-                return (
-                  <option key={dc} value={dc}>
-                    {dc} - {dcInfo ? `${dcInfo.name} (${dcInfo.region})` : dc}
-                  </option>
-                );
-              })}
+              {DISPLAY_DATACENTERS.map((dc) => (
+                <option key={dc.code} value={dc.code.toUpperCase()}>
+                  {dc.code.toUpperCase()} - {dc.name} ({dc.region})
+                </option>
+              ))}
             </select>
           </div>
           
