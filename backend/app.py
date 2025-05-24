@@ -532,7 +532,7 @@ def load_server_list():
                 "availableOptions": available_options
             }
             
-            # 处理特定系列服务器的特殊逻辑
+            # 处理特殊系列处理逻辑
             special_server_processed = False
             try:
                 # 检查是否为SYSLE系列服务器
@@ -541,7 +541,42 @@ def load_server_list():
                     
                     # 尝试从plan_code提取信息
                     # 通常SYSLE的格式为"25sysle021"，可能包含CPU型号或配置信息
-                    server_info["cpu"] = "SYSLE系列CPU"
+                    # 根据不同型号添加更具体的CPU信息
+                    if "011" in plan_code:
+                        server_info["cpu"] = "SYSLE 011系列 (入门级服务器CPU)"
+                    elif "021" in plan_code:
+                        server_info["cpu"] = "SYSLE 021系列 (中端服务器CPU)"
+                    elif "031" in plan_code:
+                        server_info["cpu"] = "SYSLE 031系列 (高端服务器CPU)"
+                    else:
+                        server_info["cpu"] = "SYSLE系列CPU"
+                    
+                    # 获取服务器显示名称和描述，可能包含CPU信息
+                    display_name = plan.get("displayName", "")
+                    invoice_name = plan.get("invoiceName", "")
+                    description = plan.get("description", "")
+                    
+                    # 检查名称中是否包含具体CPU型号信息
+                    found_cpu = False
+                    for name in [display_name, invoice_name, description]:
+                        if not name:
+                            continue
+                            
+                        # 查找CPU型号关键词
+                        cpu_keywords = ["i7-", "i9-", "i5-", "xeon", "epyc", "ryzen"]
+                        for keyword in cpu_keywords:
+                            if keyword.lower() in name.lower():
+                                # 提取包含CPU型号的部分
+                                start_pos = name.lower().find(keyword.lower())
+                                end_pos = min(start_pos + 30, len(name))  # 提取最多30个字符
+                                cpu_info = name[start_pos:end_pos].split(",")[0].strip()
+                                server_info["cpu"] = cpu_info
+                                add_log("INFO", f"从关键词中提取SYSLE CPU型号: {cpu_info} 给 {plan_code}")
+                                found_cpu = True
+                                break
+                        
+                        if found_cpu:
+                            break
                     
                     # 尝试寻找更具体的信息
                     # 保存原始数据以便分析
@@ -558,8 +593,47 @@ def load_server_list():
                 elif "sk" in plan_code.lower():
                     add_log("INFO", f"检测到SK系列服务器: {plan_code}")
                     
-                    # SK系列可能有特殊格式，如"24sk30-syd"
-                    server_info["cpu"] = "SK系列专用CPU"
+                    # 获取服务器显示名称和描述，可能包含CPU信息
+                    display_name = plan.get("displayName", "")
+                    invoice_name = plan.get("invoiceName", "")
+                    description = plan.get("description", "")
+                    
+                    # 检查名称中是否包含具体CPU型号信息
+                    found_cpu = False
+                    for name in [display_name, invoice_name, description]:
+                        if not name:
+                            continue
+                            
+                        # 查找典型的CPU信息格式，例如"KS-A | Intel i7-6700k"
+                        if "|" in name:
+                            parts = name.split("|")
+                            if len(parts) > 1:
+                                cpu_part = parts[1].strip()
+                                if "intel" in cpu_part.lower() or "amd" in cpu_part.lower() or "xeon" in cpu_part.lower() or "i7" in cpu_part.lower():
+                                    server_info["cpu"] = cpu_part
+                                    add_log("INFO", f"从名称中提取CPU型号: {cpu_part} 给 {plan_code}")
+                                    found_cpu = True
+                                    break
+                        
+                        # 直接查找CPU型号关键词
+                        cpu_keywords = ["i7-", "i9-", "i5-", "xeon", "epyc", "ryzen"]
+                        for keyword in cpu_keywords:
+                            if keyword.lower() in name.lower():
+                                # 提取包含CPU型号的部分
+                                start_pos = name.lower().find(keyword.lower())
+                                end_pos = min(start_pos + 30, len(name))  # 提取最多30个字符
+                                cpu_info = name[start_pos:end_pos].split(",")[0].strip()
+                                server_info["cpu"] = cpu_info
+                                add_log("INFO", f"从关键词中提取CPU型号: {cpu_info} 给 {plan_code}")
+                                found_cpu = True
+                                break
+                        
+                        if found_cpu:
+                            break
+                    
+                    # 如果没有找到详细的CPU型号，使用默认值
+                    if not found_cpu:
+                        server_info["cpu"] = "SK系列专用CPU"
                     
                     # 尝试寻找更具体的信息
                     # 保存原始数据以便分析
@@ -573,9 +647,54 @@ def load_server_list():
                     special_server_processed = True
                 
                 # 添加更多特殊系列处理...
+                
+                # 确保所有服务器都有CPU信息
+                if server_info["cpu"] == "N/A":
+                    add_log("INFO", f"服务器 {plan_code} 无法从API提取CPU信息，尝试从名称提取")
+                    
+                    # 尝试从名称中提取CPU信息
+                    display_name = plan.get("displayName", "")
+                    invoice_name = plan.get("invoiceName", "")
+                    description = plan.get("description", "")
+                    
+                    found_cpu = False
+                    for name in [display_name, invoice_name, description]:
+                        if not name:
+                            continue
+                            
+                        # 检查是否有CPU型号信息
+                        cpu_keywords = ["i7-", "i9-", "i5-", "xeon", "epyc", "ryzen", "processor", "cpu"]
+                        for keyword in cpu_keywords:
+                            if keyword.lower() in name.lower():
+                                # 提取包含CPU型号的部分
+                                start_pos = name.lower().find(keyword.lower())
+                                end_pos = min(start_pos + 30, len(name))  # 提取最多30个字符
+                                cpu_info = name[start_pos:end_pos].split(",")[0].strip()
+                                server_info["cpu"] = cpu_info
+                                add_log("INFO", f"从名称关键词中提取CPU型号: {cpu_info} 给 {plan_code}")
+                                found_cpu = True
+                                break
+                        
+                        if found_cpu:
+                            break
+                    
+                    # 如果仍然没有找到CPU信息，使用默认值
+                    if not found_cpu:
+                        if "sysle" in plan_code.lower():
+                            server_info["cpu"] = "SYSLE系列专用CPU"
+                        elif "rise" in plan_code.lower():
+                            server_info["cpu"] = "RISE系列专用CPU"
+                        elif "game" in plan_code.lower():
+                            server_info["cpu"] = "GAME系列专用CPU"
+                        else:
+                            server_info["cpu"] = "专用服务器CPU"
             except Exception as e:
                 add_log("WARNING", f"处理特殊系列服务器时出错: {str(e)}")
                 add_log("WARNING", f"错误详情: {traceback.format_exc()}")
+                
+                # 出错时也确保有默认CPU信息
+                if server_info["cpu"] == "N/A":
+                    server_info["cpu"] = "专用服务器CPU"
             
             # 如果是特殊处理的服务器，记录日志
             if special_server_processed:
@@ -587,6 +706,27 @@ def load_server_list():
             
             if not server_info["description"] and plan.get("displayName"):
                 server_info["description"] = plan.get("displayName")
+            
+            # 尝试从服务器名称标签中提取CPU信息
+            # 例如"KS-A | Intel i7-6700k"格式
+            if server_info["cpu"] == "N/A" or "系列" in server_info["cpu"]:
+                try:
+                    display_name = plan.get("displayName", "")
+                    invoice_name = plan.get("invoiceName", "")
+                    
+                    for name in [display_name, invoice_name]:
+                        if not name or "|" not in name:
+                            continue
+                            
+                        parts = name.split("|")
+                        if len(parts) > 1:
+                            cpu_part = parts[1].strip()
+                            if "intel" in cpu_part.lower() or "amd" in cpu_part.lower() or "xeon" in cpu_part.lower() or "i7" in cpu_part.lower():
+                                server_info["cpu"] = cpu_part
+                                add_log("INFO", f"从服务器名称标签中提取CPU: {cpu_part} 给 {plan_code}")
+                                break
+                except Exception as e:
+                    add_log("WARNING", f"从名称提取CPU时出错: {str(e)}")
             
             # 获取推荐配置和可选配置 - 使用多种方法处理不同格式
             try:
