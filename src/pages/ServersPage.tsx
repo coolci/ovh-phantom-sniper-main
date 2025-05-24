@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useAPI } from "@/context/APIContext";
 import axios from "axios";
@@ -14,11 +14,18 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Cpu, Database, Wifi, HardDrive, CheckSquare, Square, Settings, ArrowRightLeft } from "lucide-react";
+import { Cpu, Database, Wifi, HardDrive, CheckSquare, Square, Settings, ArrowRightLeft, Clock } from "lucide-react";
 import { apiEvents } from "@/context/APIContext";
 
 // Backend API URL (update this to match your backend)
 const API_URL = 'http://localhost:5000/api';
+
+// 定义刷新间隔（30分钟）
+const REFRESH_INTERVAL = 30 * 60 * 1000;
+
+// 定义缓存相关的常量
+const CACHE_KEY = 'ovh-servers-cache';
+const CACHE_EXPIRY = 30 * 60 * 1000; // 缓存30分钟过期
 
 // 全局CSS样式
 const globalStyles = `
@@ -98,16 +105,89 @@ const ServersPage = () => {
   const [datacenters, setDatacenters] = useState<string[]>([]);
   const [isCheckingAvailability, setIsCheckingAvailability] = useState(false);
   const [availability, setAvailability] = useState<Record<string, Record<string, string>>>({});
-  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   // 为每个服务器的数据中心选择状态设置映射
   const [selectedDatacenters, setSelectedDatacenters] = useState<Record<string, Record<string, boolean>>>({});
   // 用于跟踪当前选中的服务器
   const [selectedServer, setSelectedServer] = useState<string | null>(null);
   // 保存每个服务器的选中选项
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
+  // 上次更新时间
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  // 定时器引用
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // 标记是否已从缓存加载
+  const hasLoadedFromCache = useRef(false);
+
+  // 检查缓存是否过期
+  const isCacheExpired = (): boolean => {
+    const cacheData = localStorage.getItem(CACHE_KEY);
+    if (!cacheData) return true;
+    
+    try {
+      const { timestamp } = JSON.parse(cacheData);
+      const now = new Date().getTime();
+      return now - timestamp > CACHE_EXPIRY;
+    } catch (error) {
+      console.error("解析缓存数据出错:", error);
+      return true;
+    }
+  };
+
+  // 从缓存加载数据
+  const loadFromCache = (): boolean => {
+    try {
+      const cacheData = localStorage.getItem(CACHE_KEY);
+      if (!cacheData) return false;
+      
+      const { data, timestamp } = JSON.parse(cacheData);
+      if (!data || !Array.isArray(data)) return false;
+      
+      console.log("从缓存加载服务器数据...");
+      setServers(data);
+      setFilteredServers(data);
+      setLastUpdated(new Date(timestamp));
+      
+      // 初始化数据中心选择状态
+      const dcSelections: Record<string, Record<string, boolean>> = {};
+      data.forEach(server => {
+        dcSelections[server.planCode] = {};
+        // 对所有固定的数据中心进行初始化
+        OVH_DATACENTERS.forEach(dc => {
+          dcSelections[server.planCode][dc.code.toUpperCase()] = false;
+        });
+      });
+      
+      setSelectedDatacenters(dcSelections);
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error("加载缓存数据出错:", error);
+      return false;
+    }
+  };
+
+  // 保存数据到缓存
+  const saveToCache = (data: ServerPlan[]) => {
+    try {
+      const cacheData = {
+        data,
+        timestamp: new Date().getTime()
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      console.log("服务器数据已保存到缓存");
+    } catch (error) {
+      console.error("保存数据到缓存出错:", error);
+    }
+  };
 
   // Fetch servers from the backend
-  const fetchServers = async () => {
+  const fetchServers = async (forceRefresh = false) => {
+    // 如果不是强制刷新，并且已从缓存加载过数据，并且缓存未过期，则跳过
+    if (!forceRefresh && hasLoadedFromCache.current && !isCacheExpired()) {
+      console.log("使用现有数据，缓存未过期");
+      return;
+    }
+    
     setIsLoading(true);
     try {
       console.log("开始获取服务器数据...");
@@ -189,6 +269,11 @@ const ServersPage = () => {
       setServers(formattedServers);
       setFilteredServers(formattedServers);
       setIsLoading(false);
+      // 更新最后刷新时间
+      setLastUpdated(new Date());
+      
+      // 保存到缓存
+      saveToCache(formattedServers);
       
       // 检查是否有服务器缺少硬件信息
       const missingInfoServers = formattedServers.filter(
@@ -203,6 +288,34 @@ const ServersPage = () => {
       console.error("获取服务器列表时出错:", error);
       toast.error("获取服务器列表失败");
       setIsLoading(false);
+      
+      // 如果API请求失败但有缓存数据，尝试从缓存加载
+      if (!hasLoadedFromCache.current) {
+        const loaded = loadFromCache();
+        if (loaded) {
+          toast.info("使用缓存数据显示服务器列表");
+          hasLoadedFromCache.current = true;
+        }
+      }
+    }
+  };
+
+  // 格式化日期时间的辅助函数
+  const formatDateTime = (date: Date | null): string => {
+    if (!date) return "未知";
+    
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) {
+      return "刚刚";
+    } else if (diffMins < 60) {
+      return `${diffMins} 分钟前`;
+    } else {
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `今天 ${hours}:${minutes}`;
     }
   };
 
@@ -674,15 +787,45 @@ const ServersPage = () => {
 
   // Subscribe to API auth changes to reload servers when auth status changes
   useEffect(() => {
-    // Initial fetch
-    fetchServers();
+    // 首次加载时，先尝试从缓存加载
+    const loadInitialData = async () => {
+      // 尝试从缓存加载
+      const loadedFromCache = loadFromCache();
+      hasLoadedFromCache.current = loadedFromCache;
+      
+      if (loadedFromCache) {
+        console.log("成功从缓存加载数据");
+        
+        // 如果缓存过期，则在后台刷新数据
+        if (isCacheExpired()) {
+          console.log("缓存已过期，在后台刷新数据");
+          fetchServers(true);
+        }
+      } else {
+        // 如果缓存加载失败，则直接从API获取
+        console.log("缓存加载失败，从API获取数据");
+        fetchServers(true);
+      }
+    };
+    
+    loadInitialData();
+    
+    // 设置定时刷新
+    refreshTimerRef.current = setInterval(() => {
+      console.log("定时刷新服务器数据...");
+      fetchServers(true); // 强制刷新
+    }, REFRESH_INTERVAL);
     
     // Subscribe to auth change events
     const unsubscribe = apiEvents.onAuthChanged(() => {
-      fetchServers();
+      fetchServers(true); // 强制刷新
     });
     
     return () => {
+      // 清理定时器
+      if (refreshTimerRef.current) {
+        clearInterval(refreshTimerRef.current);
+      }
       unsubscribe();
     };
   }, []);
@@ -1031,12 +1174,21 @@ const ServersPage = () => {
                                   : 'hover:bg-cyber-grid/10 border border-transparent'}`}
                             >
                               <div className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={isSelected}
-                                  onChange={() => toggleOption(server.planCode, option.value, groupName)}
-                                  className="mr-2"
-                                />
+                                <div className="relative mr-2 flex items-center justify-center w-5 h-5">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleOption(server.planCode, option.value, groupName)}
+                                    className="opacity-0 absolute w-full h-full cursor-pointer"
+                                  />
+                                  <div className={`w-5 h-5 border rounded-sm flex items-center justify-center ${isSelected ? 'border-cyber-accent bg-cyber-accent/30' : 'border-slate-500'}`}>
+                                    {isSelected && (
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-accent">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                      </svg>
+                                    )}
+                                  </div>
+                                </div>
                                 <div className="flex flex-col">
                                   <div className="flex items-center">
                                     <span className="text-sm font-medium">{displayLabel}</span>
@@ -1123,38 +1275,15 @@ const ServersPage = () => {
           </div>
           
           <div className="flex items-center justify-end space-x-4">
-            <div className="flex items-center space-x-2">
-              <Button
-                onClick={() => setViewMode("grid")}
-                variant="cyber"
-                size="sm"
-                className={viewMode === "grid" ? "bg-cyber-accent/20" : ""}
-                title="网格视图"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="3" width="7" height="7"></rect>
-                  <rect x="14" y="14" width="7" height="7"></rect>
-                  <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-              </Button>
-              <Button
-                onClick={() => setViewMode("table")}
-                variant="cyber"
-                size="sm"
-                className={viewMode === "table" ? "bg-cyber-accent/20" : ""}
-                title="表格视图"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="3" y1="12" x2="21" y2="12"></line>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-              </Button>
+            <div className="flex items-center">
+              <Clock size={16} className="text-cyber-muted mr-1.5" />
+              <span className="text-xs text-cyber-muted mr-3">
+                更新于: {formatDateTime(lastUpdated)}
+              </span>
             </div>
             
             <Button
-              onClick={() => fetchServers()}
+              onClick={() => fetchServers(true)}
               variant="cyber"
               size="sm"
               className="text-xs"
@@ -1211,7 +1340,7 @@ const ServersPage = () => {
             </Button>
           </CardContent>
         </Card>
-      ) : viewMode === "grid" ? (
+      ) : (
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -1413,7 +1542,11 @@ const ServersPage = () => {
                               </span>
                               
                               {isSelected && (
-                                <div className="absolute top-1 right-1 w-2 h-2 bg-cyber-accent rounded-full"></div>
+                                <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-cyber-accent rounded-full flex items-center justify-center">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                  </svg>
+                                </div>
                               )}
                             </div>
                           );
@@ -1426,136 +1559,6 @@ const ServersPage = () => {
             </motion.div>
           ))}
         </motion.div>
-      ) : (
-        <Card className="border-cyber-accent/30">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-cyber-accent/20">
-                <TableHead className="text-cyber-accent">型号</TableHead>
-                <TableHead>名称</TableHead>
-                <TableHead>CPU</TableHead>
-                <TableHead>内存</TableHead>
-                <TableHead>存储</TableHead>
-                <TableHead>带宽</TableHead>
-                <TableHead>内网带宽</TableHead>
-                <TableHead>选项</TableHead>
-                <TableHead>数据中心</TableHead>
-                <TableHead>操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredServers.map((server) => (
-                <TableRow key={server.planCode} className="border-cyber-accent/10 hover:bg-cyber-grid/20">
-                  <TableCell className="font-mono text-cyber-accent">{server.planCode}</TableCell>
-                  <TableCell>{server.name}</TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Cpu size={14} className="mr-1.5 text-cyber-accent" />
-                      {formatServerSpec(server.cpu, "CPU")}
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Database size={14} className="mr-1.5 text-cyber-accent" />
-                      {formatServerSpec(server.memory, "内存")}
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex items-center">
-                      <HardDrive size={14} className="mr-1.5 text-cyber-accent" />
-                      {formatServerSpec(server.storage, "存储")}
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex items-center">
-                      <Wifi size={14} className="mr-1.5 text-cyber-accent" />
-                      {formatServerSpec(server.bandwidth, "带宽")}
-                    </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap">
-                    <div className="flex items-center">
-                      <ArrowRightLeft size={14} className="mr-1.5 text-cyber-accent" />
-                      {formatServerSpec(server.vrackBandwidth, "内网带宽")}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {renderServerOptions(server)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="max-h-48 overflow-y-auto p-1 pr-2 datacenter-scrollbar space-y-2">
-                      {OVH_DATACENTERS.map(dc => {
-                        const dcCode = dc.code.toUpperCase();
-                        const availStatus = availability[server.planCode]?.[dcCode.toLowerCase()] || "unknown";
-                        const isSelected = selectedDatacenters[server.planCode]?.[dcCode];
-                        
-                        let statusText = "查询中";
-                        let statusColorClass = "text-yellow-400";
-
-                        if (availStatus === "unavailable") {
-                          statusText = "不可用";
-                          statusColorClass = "text-red-500";
-                        } else if (availStatus && availStatus !== "unknown") {
-                          statusText = availStatus.includes("H") ? availStatus : "可用";
-                          statusColorClass = "text-green-400";
-                        }
-
-                        return (
-                          <div
-                            key={dcCode}
-                            className={`relative text-xs ${isSelected 
-                              ? 'bg-cyber-accent/30 border border-cyber-accent' 
-                              : `${statusColorClass} border border-cyber-accent/10 hover:border-cyber-accent/40`}`}
-                            onClick={() => toggleDatacenterSelection(server.planCode, dcCode)}
-                          >
-                            <div className="flex items-center">
-                              <div className="px-1.5 py-0.5 font-bold">
-                                {dcCode}
-                              </div>
-                              {statusText && (
-                                <div className={`px-1 border-l border-cyber-accent/20
-                                  ${statusColorClass}`}>
-                                  {statusText}
-                                </div>
-                              )}
-                            </div>
-                            
-                            {isSelected && (
-                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-cyber-accent rounded-full flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        onClick={() => {
-                          const selectedDcs = getSelectedDatacentersList(server.planCode);
-                          if (selectedDcs.length > 0) {
-                            addToQueue(server, selectedDcs);
-                          } else {
-                            toast.error("请至少选择一个数据中心");
-                          }
-                        }}
-                        disabled={!isAuthenticated || getSelectedDatacentersList(server.planCode).length === 0}
-                        variant="cyber-filled"
-                        size="sm"
-                        className="h-7 text-xs"
-                      >
-                        抢购
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
       )}
     </div>
   );
