@@ -1,0 +1,9 @@
+[
+  {
+    "family": "bandwidth",
+    "default": "bandwidth-500-24sysgame",
+    "addons": [
+      "bandwidth-500-24sysgame"
+    ]
+  }
+]

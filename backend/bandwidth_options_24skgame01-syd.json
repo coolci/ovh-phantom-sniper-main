@@ -1,0 +1,9 @@
+[
+  {
+    "family": "bandwidth",
+    "default": "traffic-10tb-300-apac",
+    "addons": [
+      "traffic-10tb-300-apac"
+    ]
+  }
+]

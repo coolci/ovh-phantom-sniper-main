@@ -1,0 +1,10 @@
+[
+  {
+    "family": "bandwidth",
+    "default": "traffic-25tb-250-burst1g-24risegame-apac",
+    "addons": [
+      "traffic-25tb-250-burst1g-24risegame-apac",
+      "traffic-unlimited-250-burst1g-24risegame-syd"
+    ]
+  }
+]

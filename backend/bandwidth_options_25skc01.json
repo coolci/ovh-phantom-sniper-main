@@ -1,0 +1,9 @@
+[
+  {
+    "family": "bandwidth",
+    "default": "bandwidth-300-25sk",
+    "addons": [
+      "bandwidth-300-25sk"
+    ]
+  }
+]

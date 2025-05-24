@@ -40,6 +40,8 @@ const OVH_DATACENTERS = [
 interface ServerOption {
   label: string;
   value: string;
+  family?: string;
+  isDefault?: boolean;
 }
 
 interface ServerPlan {
@@ -83,6 +85,7 @@ const ServersPage = () => {
   const fetchServers = async () => {
     setIsLoading(true);
     try {
+      console.log("开始获取服务器数据...");
       const response = await axios.get(`${API_URL}/servers`, {
         params: { showApiServers: isAuthenticated }
       });
@@ -90,170 +93,82 @@ const ServersPage = () => {
       // 调试输出查看原始服务器数据
       console.log("原始服务器数据:", response.data);
       
-      // Ensure server information is properly formatted
-      const formattedServers = response.data.map((server: ServerPlan) => {
-        // 如果缺少数据，添加一些硬编码的示例数据以确保显示效果
-        // 在实际生产环境中，这部分应该由后端提供
-        let cpuInfo = server.cpu;
-        let memoryInfo = server.memory;
-        let storageInfo = server.storage;
-        let bandwidthInfo = server.bandwidth;
-        
-        // 如果服务器有名称包含特定型号，但没有CPU信息，则添加示例数据
-        if (!cpuInfo || cpuInfo === "N/A" || cpuInfo.trim() === "") {
-          if (server.planCode.includes("KS-")) {
-            cpuInfo = "Intel Xeon E3-1230 v6";
-          } else if (server.planCode.includes("GAME-")) {
-            cpuInfo = "Intel i7-8700K";
-          } else if (server.planCode.includes("BHS")) {
-            cpuInfo = "AMD EPYC 7351P";
-          } else {
-            // 根据服务器型号添加默认的CPU信息
-            if (server.planCode.includes("sgp")) {
-              cpuInfo = "Intel i7-6700K";
-            } else if (server.planCode.includes("40")) {
-              cpuInfo = "Intel Xeon E3-1230 v6";
-            } else if (server.planCode.includes("01")) {
-              cpuInfo = "Intel Xeon E5-1650v2";
-            } else {
-              cpuInfo = "8 核心处理器";
-            }
-          }
+      // 确保我们从正确的数据结构中获取服务器列表
+      let serversList = [];
+      
+      if (response.data && typeof response.data === 'object') {
+        if (Array.isArray(response.data)) {
+          serversList = response.data;
+        } else if (response.data.servers && Array.isArray(response.data.servers)) {
+          serversList = response.data.servers;
         }
-        
-        // 如果没有内存信息，则添加示例数据
-        if (!memoryInfo || memoryInfo === "N/A" || memoryInfo.trim() === "") {
-          if (server.planCode.includes("KS-")) {
-            memoryInfo = "32 GB";
-          } else if (server.planCode.includes("GAME-")) {
-            memoryInfo = "64 GB";
-          } else {
-            // 根据服务器型号添加默认的内存信息
-            if (server.planCode.includes("sgp")) {
-              memoryInfo = "32 GB";
-            } else if (server.planCode.includes("40")) {
-              memoryInfo = "32 GB";
-            } else if (server.planCode.includes("01")) {
-              memoryInfo = "64 GB";
-            } else {
-              memoryInfo = "16 GB";
-            }
-          }
-        }
-        
-        // 如果没有存储信息，则添加示例数据
-        if (!storageInfo || storageInfo === "N/A" || storageInfo.trim() === "") {
-          if (server.planCode.includes("KS-")) {
-            storageInfo = "2x240GB SSD RAID";
-          } else if (server.planCode.includes("GAME-")) {
-            storageInfo = "512GB NVMe";
-          } else {
-            // 根据服务器型号添加默认的存储信息
-            if (server.planCode.includes("sgp")) {
-              storageInfo = "2TB HDD";
-            } else if (server.planCode.includes("40")) {
-              storageInfo = "1TB SSD";
-            } else if (server.planCode.includes("01")) {
-              storageInfo = "500GB NVMe";
-            } else {
-              storageInfo = "500GB SSD";
-            }
-          }
-        }
-        
-        // 如果没有带宽信息，则添加示例数据
-        if (!bandwidthInfo || bandwidthInfo === "N/A" || bandwidthInfo.trim() === "") {
-          if (server.planCode.includes("KS-")) {
-            bandwidthInfo = "500 Mbps";
-          } else if (server.planCode.includes("GAME-")) {
-            bandwidthInfo = "1 Gbps";
-          } else {
-            // 根据服务器型号添加默认的带宽信息
-            if (server.planCode.includes("sgp")) {
-              bandwidthInfo = "500 Mbps";
-            } else if (server.planCode.includes("40")) {
-              bandwidthInfo = "1 Gbps";
-            } else if (server.planCode.includes("01")) {
-              bandwidthInfo = "1 Gbps";
-            } else {
-              bandwidthInfo = "250 Mbps";
-            }
-          }
-        }
-        
-        // 返回格式化后的服务器信息
-        return {
+      }
+      
+      console.log("解析后的服务器列表:", serversList);
+      console.log(`获取到 ${serversList.length} 台服务器`);
+      
+      // 确保每个服务器都有正确的数据结构
+      const formattedServers = serversList.map((server: ServerPlan) => {
+        // 验证必要字段是否存在
+        const formattedServer = {
           ...server,
-          cpu: formatServerSpec(cpuInfo, "CPU"),
-          memory: formatServerSpec(memoryInfo, "内存"),
-          storage: formatServerSpec(storageInfo, "存储"),
-          bandwidth: formatServerSpec(bandwidthInfo, "带宽"),
-          vrackBandwidth: formatServerSpec(server.vrackBandwidth, "内部带宽")
+          cpu: server.cpu || "N/A",
+          memory: server.memory || "N/A", 
+          storage: server.storage || "N/A",
+          bandwidth: server.bandwidth || "N/A",
+          vrackBandwidth: server.vrackBandwidth || "N/A",
+          defaultOptions: server.defaultOptions || [],
+          availableOptions: server.availableOptions || [],
+          datacenters: server.datacenters || []
         };
-      });
-      
-      // 为每个服务器添加所有OVH数据中心
-      formattedServers.forEach(server => {
-        // 获取服务器已有的数据中心代码，转换为小写
-        const existingDcCodes = new Map(
-          server.datacenters.map(dc => [dc.datacenter.toLowerCase(), dc.availability])
-        );
         
-        // 使用固定的OVH数据中心列表替换服务器的数据中心列表
-        server.datacenters = OVH_DATACENTERS.map(dc => {
-          // 检查服务器是否已有此数据中心的可用性信息
-          const availability = existingDcCodes.get(dc.code) || "unknown";
-          return {
-            datacenter: dc.code.toUpperCase(),
-            dcName: dc.name,
-            region: dc.region,
-            availability: availability
-          };
+        // 显示额外调试信息
+        console.log(`服务器 ${server.planCode} 硬件信息:`, {
+          cpu: formattedServer.cpu,
+          memory: formattedServer.memory,
+          storage: formattedServer.storage,
+          bandwidth: formattedServer.bandwidth
         });
         
-        // 如果没有选项信息，添加一些示例选项
-        if (!server.defaultOptions || server.defaultOptions.length === 0) {
-          server.defaultOptions = [
-            { label: "默认OS", value: "default-os" },
-            { label: "标准配置", value: "standard-config" }
-          ];
-        }
-        
-        // 如果没有可选选项，添加一些示例可选选项
-        if (!server.availableOptions || server.availableOptions.length === 0) {
-          server.availableOptions = [
-            { label: "额外磁盘", value: "extra-disk" },
-            { label: "备份空间", value: "backup-space" },
-            { label: "DDoS防护", value: "ddos-protection" },
-            { label: "IPv6", value: "ipv6" }
-          ];
-        }
+        return formattedServer;
       });
       
-      // 调试输出查看格式化后的服务器数据
-      console.log("格式化后的服务器数据:", formattedServers);
+      console.log("格式化后的服务器列表:", formattedServers);
       
+      // 初始化数据中心选择状态
+      const dcSelections: Record<string, Record<string, boolean>> = {};
+      formattedServers.forEach(server => {
+        dcSelections[server.planCode] = {};
+        server.datacenters.forEach(dc => {
+          dcSelections[server.planCode][dc.datacenter] = false;
+        });
+      });
+      
+      // 收集所有数据中心
+      const allDatacenters = new Set<string>();
+      formattedServers.forEach(server => {
+        server.datacenters.forEach(dc => {
+          allDatacenters.add(dc.datacenter);
+        });
+      });
+      setDatacenters(Array.from(allDatacenters));
+      
+      setSelectedDatacenters(dcSelections);
       setServers(formattedServers);
-      setFilteredServers(formattedServers);
+      setIsLoading(false);
       
-      // 设置全局数据中心列表 - 直接使用OVH_DATACENTERS
-      setDatacenters(OVH_DATACENTERS.map(dc => dc.code.toUpperCase()));
-
-      // 初始化每个服务器的数据中心选择状态
-      const newSelectedDatacenters: Record<string, Record<string, boolean>> = {};
-      formattedServers.forEach(server => {
-        const dcState: Record<string, boolean> = {};
-        OVH_DATACENTERS.forEach(dc => {
-          dcState[dc.code.toUpperCase()] = false;
-        });
-        newSelectedDatacenters[server.planCode] = dcState;
-      });
-      setSelectedDatacenters(newSelectedDatacenters);
+      // 检查是否有服务器缺少硬件信息
+      const missingInfoServers = formattedServers.filter(
+        server => server.cpu === "N/A" || server.memory === "N/A" || server.storage === "N/A"
+      );
+      
+      if (missingInfoServers.length > 0) {
+        console.warn("以下服务器缺少硬件信息:", missingInfoServers.map(s => s.planCode).join(", "));
+      }
       
     } catch (error) {
-      console.error("Error fetching servers:", error);
+      console.error("获取服务器列表时出错:", error);
       toast.error("获取服务器列表失败");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -274,6 +189,19 @@ const ServersPage = () => {
           value.toLowerCase().includes("xeon") || 
           value.toLowerCase().includes("epyc")) {
         return value;
+      }
+      
+      // 处理OVH API返回的CPU值格式 (通常是planCode)
+      const cpuNameMatch = value.match(/cpu-([a-z0-9-]+)/i);
+      if (cpuNameMatch) {
+        // 尝试从planCode中提取CPU型号
+        const cpuName = cpuNameMatch[1]
+          .replace(/-/g, ' ')
+          .replace(/(\d+)c(\d+)t/i, '$1核$2线程')
+          .replace(/(\d+)c/i, '$1核')
+          .replace(/i(\d+)/i, 'Intel Core i$1');
+        
+        return cpuName.charAt(0).toUpperCase() + cpuName.slice(1);
       }
       
       // 尝试从不同格式中提取信息
@@ -300,6 +228,12 @@ const ServersPage = () => {
           value.toLowerCase().includes("tb")) {
         return value;
       } 
+      
+      // 处理OVH API返回的内存值格式
+      const ramMatch = value.match(/ram-(\d+)g/i);
+      if (ramMatch) {
+        return `${ramMatch[1]} GB`;
+      }
       
       // 尝试处理纯数字
       if (!isNaN(Number(value))) {
@@ -337,6 +271,16 @@ const ServersPage = () => {
         return value;
       }
       
+      // 处理OVH API返回的存储值格式
+      const storageMatch = value.match(/(raid|softraid)-(\d+)x(\d+)(ssd|hdd|nvme)/i);
+      if (storageMatch) {
+        const raidType = storageMatch[1].toUpperCase();
+        const count = storageMatch[2];
+        const size = storageMatch[3];
+        const diskType = storageMatch[4].toUpperCase();
+        return `${raidType} ${count}x ${size}GB ${diskType}`;
+      }
+      
       // 尝试处理纯数字
       if (!isNaN(Number(value))) {
         const num = Number(value);
@@ -346,17 +290,77 @@ const ServersPage = () => {
         return `${num} GB`;
       }
       
+      // 尝试匹配常见的存储格式，如 "2x500GB SSD"
+      const simpleStorageMatch = value.match(/(\d+)x(\d+)(GB|TB|G|T)?/i);
+      if (simpleStorageMatch) {
+        const count = parseInt(simpleStorageMatch[1]);
+        const size = parseInt(simpleStorageMatch[2]);
+        const unit = simpleStorageMatch[3]?.toUpperCase() || "GB";
+        const sizeStr = unit.includes("T") ? `${size}TB` : `${size}GB`;
+        return `${count}x ${sizeStr}`;
+      }
+      
       return value;
     }
     
     // 对于带宽
     if (type.includes("带宽")) {
-      // 已经包含单位
+      // 已经包含单位或特殊格式
       if (value.toLowerCase().includes("gbps") || 
           value.toLowerCase().includes("mbps") || 
           value.toLowerCase().includes("gbit") || 
-          value.toLowerCase().includes("mbit")) {
+          value.toLowerCase().includes("mbit") ||
+          value.toLowerCase().includes("流量") ||
+          value.toLowerCase().includes("无限") ||
+          value.toLowerCase().includes("保证")) {
         return value;
+      }
+      
+      // 处理带宽和流量组合格式 "traffic-5tb-100-24sk-apac"
+      const combinedTrafficMatch = value.match(/traffic-(\d+)(tb|gb|mb)-(\d+)/i);
+      if (combinedTrafficMatch) {
+        const trafficSize = combinedTrafficMatch[1];
+        const trafficUnit = combinedTrafficMatch[2].toUpperCase();
+        const bandwidth = combinedTrafficMatch[3];
+        return `${bandwidth} Mbps / ${trafficSize} ${trafficUnit}流量`;
+      }
+      
+      // 处理无限流量
+      if (value.toLowerCase().includes("unlimited")) {
+        return "无限流量";
+      }
+      
+      // 处理保证带宽
+      if (value.toLowerCase().includes("guarantee")) {
+        const bwMatch = value.match(/(\d+)/);
+        if (bwMatch) {
+          return `${bwMatch[1]} Mbps (保证带宽)`;
+        }
+        return "保证带宽";
+      }
+      
+      // 处理OVH API返回的带宽值格式
+      const trafficMatch = value.match(/traffic-(\d+)(tb|gb|mb|m|g)/i);
+      if (trafficMatch) {
+        const size = trafficMatch[1];
+        const unit = trafficMatch[2].toLowerCase();
+        if (unit === 'tb' || unit === 't') {
+          return `${size} TB流量`;
+        } else if (unit === 'gb' || unit === 'g') {
+          return `${size} GB流量`;
+        } else {
+          return `${size} MB流量`;
+        }
+      }
+      
+      // 处理bandwidth格式
+      const bandwidthMatch = value.match(/bandwidth-(\d+)/i);
+      if (bandwidthMatch) {
+        const bwValue = parseInt(bandwidthMatch[1]);
+        if (bwValue >= 1000) {
+          return `${bwValue/1000} Gbps`.replace(".0 ", " ");
+        }
+        return `${bwValue} Mbps`;
       }
       
       // 尝试处理纯数字
@@ -366,6 +370,18 @@ const ServersPage = () => {
           return `${(num/1000).toFixed(1)} Gbps`;
         }
         return `${num} Mbps`;
+      }
+      
+      // 尝试匹配带宽格式
+      const bwMatch = value.match(/(\d+)([mg])/i);
+      if (bwMatch) {
+        const size = parseInt(bwMatch[1]);
+        const unit = bwMatch[2].toLowerCase();
+        if (unit === 'g') {
+          return `${size} Gbps`;
+        } else if (unit === 'm') {
+          return `${size} Mbps`;
+        }
       }
       
       return value;
@@ -472,10 +488,49 @@ const ServersPage = () => {
     }
     
     try {
+      // 过滤选项，只保留硬件相关的
+      const filterHardwareOptions = (options: string[]) => {
+        return options.filter(option => {
+          const optionLower = option.toLowerCase();
+          
+          // 排除许可证相关选项
+          if (
+            // Windows许可证
+            optionLower.includes("windows-server") ||
+            // SQL Server许可证
+            optionLower.includes("sql-server") ||
+            // cPanel许可证
+            optionLower.includes("cpanel-license") ||
+            // Plesk许可证
+            optionLower.includes("plesk-") ||
+            // 其他常见许可证
+            optionLower.includes("-license-") ||
+            // 操作系统选项
+            optionLower.startsWith("os-") ||
+            // 控制面板
+            optionLower.includes("control-panel") ||
+            optionLower.includes("panel") ||
+            // 安全产品
+            optionLower.includes("security") ||
+            optionLower.includes("antivirus") ||
+            optionLower.includes("firewall")
+          ) {
+            return false;
+          }
+          
+          return true;
+        });
+      };
+      
       // 获取最终选项，如果用户选择了自定义选项则使用那些，否则使用默认选项
-      const options = selectedOptions[server.planCode]?.length > 0 
+      let options = selectedOptions[server.planCode]?.length > 0 
         ? selectedOptions[server.planCode] 
         : server.defaultOptions.map(opt => opt.value);
+      
+      // 过滤掉非硬件相关选项
+      options = filterHardwareOptions(options);
+      
+      console.log("提交的硬件选项:", options);
 
       // 为每个选中的数据中心创建一个抢购请求
       const promises = datacenters.map(datacenter => 
@@ -548,6 +603,185 @@ const ServersPage = () => {
       setSelectedOptions(defaultServerOptions);
     }
   }, [servers]);
+
+  // 分类并显示服务器配置选项
+  const renderServerOptions = (server: ServerPlan) => {
+    // 过滤掉许可证相关的选项，只保留硬件相关选项
+    const filteredOptions = server.availableOptions ? server.availableOptions.filter(option => {
+      const optionValue = option.value.toLowerCase();
+      const optionLabel = option.label.toLowerCase();
+      
+      // 排除许可证相关选项
+      if (
+        // Windows许可证
+        optionValue.includes("windows-server") ||
+        // SQL Server许可证
+        optionValue.includes("sql-server") ||
+        // cPanel许可证
+        optionValue.includes("cpanel-license") ||
+        // Plesk许可证
+        optionValue.includes("plesk-") ||
+        // 其他常见许可证
+        optionValue.includes("-license-") ||
+        // 操作系统选项
+        optionValue.startsWith("os-") ||
+        // 控制面板
+        optionValue.includes("control-panel") ||
+        optionValue.includes("panel") ||
+        // 其他软件许可
+        optionLabel.includes("license") ||
+        optionLabel.includes("许可证") ||
+        optionLabel.includes("许可") ||
+        // 安全产品
+        optionValue.includes("security") ||
+        optionValue.includes("antivirus") ||
+        optionValue.includes("firewall")
+      ) {
+        return false;
+      }
+      
+      return true;
+    }) : [];
+    
+    // 过滤默认选项，只保留硬件相关的
+    const filteredDefaultOptions = server.defaultOptions ? server.defaultOptions.filter(option => {
+      const optionValue = option.value.toLowerCase();
+      const optionLabel = option.label.toLowerCase();
+      
+      // 排除许可证相关选项
+      if (
+        // Windows许可证
+        optionValue.includes("windows-server") ||
+        // SQL Server许可证
+        optionValue.includes("sql-server") ||
+        // cPanel许可证
+        optionValue.includes("cpanel-license") ||
+        // Plesk许可证
+        optionValue.includes("plesk-") ||
+        // 其他常见许可证
+        optionValue.includes("-license-") ||
+        // 操作系统选项
+        optionValue.startsWith("os-") ||
+        // 控制面板
+        optionValue.includes("control-panel") ||
+        optionValue.includes("panel") ||
+        // 其他软件许可
+        optionLabel.includes("license") ||
+        optionLabel.includes("许可证") ||
+        optionLabel.includes("许可") ||
+        // 安全产品
+        optionValue.includes("security") ||
+        optionValue.includes("antivirus") ||
+        optionValue.includes("firewall")
+      ) {
+        return false;
+      }
+      
+      return true;
+    }) : [];
+    
+    // 如果没有任何硬件相关的可选和默认配置，则不显示任何内容
+    if (filteredOptions.length === 0 && filteredDefaultOptions.length === 0) {
+      return null;
+    }
+    
+    // 尝试根据选项分类将选项分组
+    const optionGroups: Record<string, ServerOption[]> = {
+      "CPU/处理器": [],
+      "内存": [],
+      "存储": [],
+      "带宽/网络": [],
+      "其他": []
+    };
+    
+    // 根据family或描述关键字分配选项到不同分组
+    filteredOptions.forEach(option => {
+      const family = option.family?.toLowerCase() || "";
+      const desc = option.label.toLowerCase();
+      
+      if (family.includes("cpu") || family.includes("processor") || 
+          desc.includes("cpu") || desc.includes("processor") || 
+          desc.includes("intel") || desc.includes("amd") || 
+          desc.includes("xeon") || desc.includes("epyc") || 
+          desc.includes("ryzen") || desc.includes("core")) {
+        optionGroups["CPU/处理器"].push(option);
+      }
+      else if (family.includes("memory") || family.includes("ram") || 
+               desc.includes("ram") || desc.includes("memory") || 
+               desc.includes("gb") || desc.includes("ddr")) {
+        optionGroups["内存"].push(option);
+      }
+      else if (family.includes("storage") || family.includes("disk") || 
+               desc.includes("ssd") || desc.includes("hdd") || 
+               desc.includes("nvme") || desc.includes("storage") || 
+               desc.includes("disk") || desc.includes("raid")) {
+        optionGroups["存储"].push(option);
+      }
+      else if (family.includes("bandwidth") || family.includes("traffic") || 
+               desc.includes("bandwidth") || desc.includes("network") || 
+               desc.includes("ip") || desc.includes("带宽") || 
+               desc.includes("mbps") || desc.includes("gbps")) {
+        optionGroups["带宽/网络"].push(option);
+      }
+      else {
+        optionGroups["其他"].push(option);
+      }
+    });
+    
+    // 检查是否有任何选项被分组（确保至少有一个组有内容）
+    const hasGroupedOptions = Object.values(optionGroups).some(group => group.length > 0);
+    
+    // 渲染分组选项
+    return (
+      <div className="space-y-3">
+        {filteredDefaultOptions.length > 0 && (
+          <div>
+            <div className="font-medium text-cyber-accent mb-1">默认配置</div>
+            <div className="flex flex-wrap gap-1 mb-3">
+              {filteredDefaultOptions.map(option => (
+                <div
+                  key={option.value}
+                  className="bg-cyber-accent/10 px-2 py-1 rounded text-xs border border-cyber-accent/20 text-cyber-accent"
+                >
+                  {option.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {hasGroupedOptions && (
+          <div className="mt-2">
+            <div className="font-medium text-cyber-blue mb-1">可选配置</div>
+            {Object.entries(optionGroups).map(([groupName, options]) => {
+              if (options.length === 0) return null;
+              
+              return (
+                <div key={groupName} className="mb-3">
+                  <div className="font-medium text-cyber-blue mb-1">{groupName}</div>
+                  <div className="space-y-1 mb-2">
+                    {options.map(option => (
+                      <div key={option.value} className="flex items-center">
+                        <label className="cyber-checkbox-container flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isOptionSelected(server.planCode, option.value)}
+                            onChange={() => toggleOption(server.planCode, option.value)}
+                            className="mr-2"
+                          />
+                          <span className="text-sm">{option.label}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -732,87 +966,34 @@ const ServersPage = () => {
                       <Cpu size={18} className="text-cyber-accent" />
                       <div>
                         <div className="text-xs text-cyber-muted">CPU</div>
-                        <div className="font-medium text-sm">{server.cpu || "暂无数据"}</div>
+                        <div className="font-medium text-sm">{formatServerSpec(server.cpu, "CPU")}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 p-2 bg-cyber-grid/10 rounded border border-cyber-accent/10">
                       <Database size={18} className="text-cyber-accent" />
                       <div>
                         <div className="text-xs text-cyber-muted">内存</div>
-                        <div className="font-medium text-sm">{server.memory || "暂无数据"}</div>
+                        <div className="font-medium text-sm">{formatServerSpec(server.memory, "内存")}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 p-2 bg-cyber-grid/10 rounded border border-cyber-accent/10">
                       <HardDrive size={18} className="text-cyber-accent" />
                       <div>
                         <div className="text-xs text-cyber-muted">存储</div>
-                        <div className="font-medium text-sm">{server.storage || "暂无数据"}</div>
+                        <div className="font-medium text-sm">{formatServerSpec(server.storage, "存储")}</div>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 p-2 bg-cyber-grid/10 rounded border border-cyber-accent/10">
                       <Wifi size={18} className="text-cyber-accent" />
                       <div>
                         <div className="text-xs text-cyber-muted">带宽</div>
-                        <div className="font-medium text-sm">{server.bandwidth || "暂无数据"}</div>
+                        <div className="font-medium text-sm">{formatServerSpec(server.bandwidth, "带宽")}</div>
                       </div>
                     </div>
                   </div>
                   
                   {/* 服务器配置选项 */}
-                  {(server.defaultOptions.length > 0 || server.availableOptions.length > 0) && (
-                    <div className="rounded border border-cyber-accent/20 overflow-hidden mb-4">
-                      <div className="bg-cyber-grid/20 px-3 py-2 border-b border-cyber-accent/20">
-                        <span className="text-xs font-medium flex items-center">
-                          <Settings size={14} className="mr-1.5 text-cyber-accent" />
-                          配置选项
-                        </span>
-                      </div>
-                      <div className="p-3">
-                        {server.defaultOptions.length > 0 && (
-                          <div className="mb-3">
-                            <div className="text-xs text-cyber-muted mb-1">默认选项:</div>
-                            <div className="flex flex-wrap gap-1">
-                              {server.defaultOptions.map(option => (
-                                <div 
-                                  key={option.value} 
-                                  className="bg-cyber-accent/10 px-2 py-1 rounded text-xs border border-cyber-accent/20 text-cyber-accent"
-                                >
-                                  {option.label}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {server.availableOptions.length > 0 && (
-                          <div>
-                            <div className="text-xs text-cyber-muted mb-1">可选配置:</div>
-                            <div className="flex flex-wrap gap-1">
-                              {server.availableOptions.map(option => (
-                                <div 
-                                  key={option.value} 
-                                  className={`px-2 py-1 rounded text-xs border cursor-pointer transition-colors
-                                    ${isOptionSelected(server.planCode, option.value) 
-                                      ? "bg-cyber-accent/30 border-cyber-accent text-white" 
-                                      : "bg-cyber-grid/10 border-cyber-accent/10 text-cyber-muted hover:bg-cyber-accent/10"}`}
-                                  onClick={() => toggleOption(server.planCode, option.value)}
-                                >
-                                  <div className="flex items-center">
-                                    {isOptionSelected(server.planCode, option.value) ? (
-                                      <CheckSquare size={10} className="mr-1" />
-                                    ) : (
-                                      <Square size={10} className="mr-1" />
-                                    )}
-                                    {option.label}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  {renderServerOptions(server)}
                   
                   {/* Datacenters availability section */}
                   <div className="rounded border border-cyber-accent/20 overflow-hidden">
@@ -962,71 +1143,29 @@ const ServersPage = () => {
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <Cpu size={14} className="mr-1.5 text-cyber-accent" />
-                      {server.cpu || "暂无数据"}
+                      {formatServerSpec(server.cpu, "CPU")}
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <Database size={14} className="mr-1.5 text-cyber-accent" />
-                      {server.memory || "暂无数据"}
+                      {formatServerSpec(server.memory, "内存")}
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <HardDrive size={14} className="mr-1.5 text-cyber-accent" />
-                      {server.storage || "暂无数据"}
+                      {formatServerSpec(server.storage, "存储")}
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       <Wifi size={14} className="mr-1.5 text-cyber-accent" />
-                      {server.bandwidth || "暂无数据"}
+                      {formatServerSpec(server.bandwidth, "带宽")}
                     </div>
                   </TableCell>
                   <TableCell>
-                    {(server.defaultOptions.length > 0 || server.availableOptions.length > 0) && (
-                      <div>
-                        {server.defaultOptions.length > 0 && (
-                          <div className="mb-2">
-                            <div className="text-xs text-cyber-muted mb-1">默认选项:</div>
-                            <div className="flex flex-wrap gap-1">
-                              {server.defaultOptions.map(option => (
-                                <div key={option.value} className="bg-cyber-accent/10 px-1.5 py-0.5 rounded text-xs border border-cyber-accent/20 text-cyber-accent">
-                                  {option.label}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {server.availableOptions.length > 0 && (
-                          <div>
-                            <div className="text-xs text-cyber-muted mb-1">可选配置:</div>
-                            <div className="flex flex-wrap gap-1">
-                              {server.availableOptions.map(option => (
-                                <div 
-                                  key={option.value} 
-                                  className={`px-1.5 py-0.5 rounded text-xs border cursor-pointer transition-colors
-                                    ${isOptionSelected(server.planCode, option.value) 
-                                      ? "bg-cyber-accent/30 border-cyber-accent text-white" 
-                                      : "bg-cyber-grid/10 border-cyber-accent/10 text-cyber-muted hover:bg-cyber-accent/10"}`}
-                                  onClick={() => toggleOption(server.planCode, option.value)}
-                                >
-                                  <div className="flex items-center">
-                                    {isOptionSelected(server.planCode, option.value) ? (
-                                      <CheckSquare size={10} className="mr-1" />
-                                    ) : (
-                                      <Square size={10} className="mr-1" />
-                                    )}
-                                    {option.label}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {renderServerOptions(server)}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">

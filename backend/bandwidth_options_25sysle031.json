@@ -1,0 +1,9 @@
+[
+  {
+    "family": "bandwidth",
+    "default": "bandwidth-500-unguaranteed-25sysle",
+    "addons": [
+      "bandwidth-500-unguaranteed-25sysle"
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "family": "bandwidth",
+    "default": "bandwidth-1000-24rise",
+    "addons": [
+      "bandwidth-2000-24rise",
+      "bandwidth-1000-24rise"
+    ]
+  }
+]

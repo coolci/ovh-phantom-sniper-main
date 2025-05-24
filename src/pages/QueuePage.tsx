@@ -71,7 +71,10 @@ const QueuePage = () => {
       const response = await axios.get(`${API_URL}/servers`, {
         params: { showApiServers: isAuthenticated },
       });
-      setServers(response.data);
+      
+      // 处理后端返回的数据，适配两种可能的格式
+      const serversList = response.data.servers || response.data || [];
+      setServers(serversList);
     } catch (error) {
       console.error("Error fetching servers:", error);
       toast.error("获取服务器列表失败");

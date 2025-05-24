@@ -1,0 +1,12 @@
+[
+  {
+    "family": "bandwidth",
+    "default": "traffic-25tb-1000-24rise-apac",
+    "addons": [
+      "traffic-unlimited-1000-24rise-apac",
+      "traffic-unlimited-2000-24rise-apac",
+      "traffic-25tb-1000-24rise-apac",
+      "traffic-25tb-2000-24rise-apac"
+    ]
+  }
+]
