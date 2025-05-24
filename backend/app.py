@@ -277,6 +277,8 @@ def purchase_server(queue_item):
         
         if not found_available:
             add_log("INFO", f"服务器 {queue_item['planCode']} 在数据中心 {queue_item['datacenter']} 当前无货", "purchase")
+            # Even if not available, we might want to record this attempt in history if it's the first one
+            # For now, returning False will prevent history update here, purchase_server is called in a loop by queue processor
             return False
         
         # Create cart
@@ -284,12 +286,6 @@ def purchase_server(queue_item):
         cart_result = client.post('/order/cart', ovhSubsidiary=config["zone"])
         cart_id = cart_result["cartId"]
         add_log("INFO", f"购物车创建成功，ID: {cart_id}", "purchase")
-        
-        # Assign cart - It's often better to assign after all items and configurations are set,
-        # but OVH API can be particular. Let's keep it here for now as per original app.py flow,
-        # but consider moving it before checkout if issues arise.
-        # add_log("INFO", f"Assigning cart {cart_id}", "purchase")
-        # client.post(f'/order/cart/{cart_id}/assign') # Moved later
         
         # Add base item to cart using /eco endpoint
         add_log("INFO", f"添加基础商品 {queue_item['planCode']} 到购物车 (使用 /eco)", "purchase")
@@ -305,13 +301,12 @@ def purchase_server(queue_item):
         
         # Configure item (datacenter, OS, region)
         add_log("INFO", f"为项目 {item_id} 设置必需配置", "purchase")
-        # Determine region based on datacenter (simplified)
         dc_lower = queue_item["datacenter"].lower()
         region = None
         EU_DATACENTERS = ['gra', 'rbx', 'sbg', 'eri', 'lim', 'waw', 'par', 'fra', 'lon']
         CANADA_DATACENTERS = ['bhs']
         US_DATACENTERS = ['vin', 'hil']
-        APAC_DATACENTERS = ['syd', 'sgp'] # 'mum' could be added
+        APAC_DATACENTERS = ['syd', 'sgp'] 
 
         if any(dc_lower.startswith(prefix) for prefix in EU_DATACENTERS): region = "europe"
         elif any(dc_lower.startswith(prefix) for prefix in CANADA_DATACENTERS): region = "canada"
@@ -320,20 +315,18 @@ def purchase_server(queue_item):
 
         configurations_to_set = {
             "dedicated_datacenter": queue_item["datacenter"],
-            "dedicated_os": "none_64.en" # Or make this configurable from queue_item
+            "dedicated_os": "none_64.en" 
         }
         if region:
             configurations_to_set["region"] = region
         else:
             add_log("WARNING", f"无法为数据中心 {dc_lower} 推断区域，可能导致配置失败", "purchase")
-            # Check if region is mandatory
             try:
                 required_configs_list = client.get(f'/order/cart/{cart_id}/item/{item_id}/requiredConfiguration')
                 if any(conf.get("label") == "region" and conf.get("required") for conf in required_configs_list):
                     raise Exception("必需的区域配置无法确定。")
             except Exception as rc_err:
                  add_log("WARNING", f"获取必需配置失败或区域为必需但未确定: {rc_err}", "purchase")
-                 # If region is critical and not found, this might be a point of failure.
 
         for label, value in configurations_to_set.items():
             if value is None: continue
@@ -343,18 +336,14 @@ def purchase_server(queue_item):
                        value=str(value))
             add_log("INFO", f"成功设置必需项: {label} = {value}", "purchase")
 
-        # Add hardware options using /eco/options endpoint
         user_requested_options = queue_item.get("options", [])
         if user_requested_options:
             add_log("INFO", f"处理用户请求的硬件选项: {user_requested_options}", "purchase")
-            
-            # Filter out non-hardware options (licenses, OS, etc.)
             filtered_hardware_options = []
             for option_plan_code in user_requested_options:
                 if not option_plan_code or not isinstance(option_plan_code, str):
                     add_log("WARNING", f"跳过无效的选项值: {option_plan_code}", "purchase")
                     continue
-                
                 opt_lower = option_plan_code.lower()
                 if any(skip_term in opt_lower for skip_term in [
                     "windows-server", "sql-server", "cpanel-license", "plesk-",
@@ -367,12 +356,9 @@ def purchase_server(queue_item):
             if filtered_hardware_options:
                 add_log("INFO", f"过滤后的硬件选项计划代码: {filtered_hardware_options}", "purchase")
                 try:
-                    # Get available ECO options for the base planCode in the cart
                     add_log("INFO", f"获取购物车 {cart_id} 中与基础商品 {queue_item['planCode']} 兼容的 Eco 硬件选项...", "purchase")
                     available_eco_options = client.get(f'/order/cart/{cart_id}/eco/options', planCode=queue_item['planCode'])
                     add_log("INFO", f"找到 {len(available_eco_options)} 个可用的 Eco 硬件选项。", "purchase")
-                    # add_log("DEBUG", f"可用 Eco 选项详情: {json.dumps(available_eco_options)}", "purchase") # Verbose
-
                     added_options_count = 0
                     for wanted_option_plan_code in filtered_hardware_options:
                         option_added_successfully = False
@@ -380,16 +366,12 @@ def purchase_server(queue_item):
                             avail_opt_plan_code = avail_opt.get("planCode")
                             if not avail_opt_plan_code:
                                 continue
-
-                            # Match based on the start of the plan code (as per main.py logic)
-                            # or exact match if preferred. For now, using exact match for simplicity.
-                            # if avail_opt_plan_code.startswith(wanted_option_plan_code):
                             if avail_opt_plan_code == wanted_option_plan_code:
                                 add_log("INFO", f"找到匹配的 Eco 选项: {avail_opt_plan_code} (匹配用户请求: {wanted_option_plan_code})", "purchase")
                                 try:
                                     option_payload_eco = {
-                                        "itemId": item_id,  # Link to the base server item
-                                        "planCode": avail_opt_plan_code, # The planCode of the ECO option itself
+                                        "itemId": item_id, 
+                                        "planCode": avail_opt_plan_code, 
                                         "duration": avail_opt.get("duration", "P1M"),
                                         "pricingMode": avail_opt.get("pricingMode", "default"),
                                         "quantity": 1
@@ -399,17 +381,14 @@ def purchase_server(queue_item):
                                     add_log("INFO", f"成功添加 Eco 选项: {avail_opt_plan_code} 到购物车 {cart_id}", "purchase")
                                     added_options_count += 1
                                     option_added_successfully = True
-                                    break # Found and added, move to next wanted_option
+                                    break 
                                 except ovh.exceptions.APIError as add_opt_error:
                                     add_log("WARNING", f"添加 Eco 选项 {avail_opt_plan_code} 失败: {add_opt_error}", "purchase")
                                 except Exception as general_add_opt_error:
                                     add_log("WARNING", f"添加 Eco 选项 {avail_opt_plan_code} 时发生未知错误: {general_add_opt_error}", "purchase")
-                        
                         if not option_added_successfully:
                              add_log("WARNING", f"用户请求的硬件选项 {wanted_option_plan_code} 未在可用Eco选项中找到或添加失败。", "purchase")
-                    
                     add_log("INFO", f"共成功添加 {added_options_count} 个硬件选项。", "purchase")
-
                 except ovh.exceptions.APIError as get_opts_error:
                     add_log("ERROR", f"获取 Eco 硬件选项列表失败: {get_opts_error}", "purchase")
                 except Exception as e:
@@ -419,15 +398,13 @@ def purchase_server(queue_item):
         else:
             add_log("INFO", "用户未提供任何硬件选项。", "purchase")
 
-        # Assign cart (moved here, before checkout)
         add_log("INFO", f"绑定购物车 {cart_id}", "purchase")
         client.post(f'/order/cart/{cart_id}/assign')
         add_log("INFO", "购物车绑定成功", "purchase")
         
-        # Checkout
         add_log("INFO", f"对购物车 {cart_id} 执行结账", "purchase")
         checkout_payload = {
-            "autoPayWithPreferredPaymentMethod": False, # Set to True if you want to auto-pay
+            "autoPayWithPreferredPaymentMethod": False, 
             "waiveRetractationPeriod": True
         }
         checkout_result = client.post(f'/order/cart/{cart_id}/checkout', **checkout_payload)
@@ -435,18 +412,36 @@ def purchase_server(queue_item):
         order_id_val = checkout_result.get("orderId", "")
         order_url_val = checkout_result.get("url", "")
         
-        # Create purchase history entry
-        history_entry = {
-            "id": str(uuid.uuid4()),
-            "planCode": queue_item["planCode"],
-            "datacenter": queue_item["datacenter"],
-            "options": queue_item.get("options", []), # Log the originally requested options
-            "status": "success",
-            "orderId": order_id_val,
-            "orderUrl": order_url_val,
-            "purchaseTime": datetime.now().isoformat()
-        }
-        purchase_history.append(history_entry)
+        # Update or create purchase history entry for SUCCESS
+        existing_history_entry = next((h for h in purchase_history if h.get("taskId") == queue_item["id"]), None)
+        current_time_iso = datetime.now().isoformat()
+
+        if existing_history_entry:
+            existing_history_entry["status"] = "success"
+            existing_history_entry["orderId"] = order_id_val
+            existing_history_entry["orderUrl"] = order_url_val
+            existing_history_entry["errorMessage"] = None # Clear previous error on success
+            existing_history_entry["purchaseTime"] = current_time_iso
+            existing_history_entry["attemptCount"] = queue_item["retryCount"]
+            existing_history_entry["options"] = queue_item.get("options", [])
+            add_log("INFO", f"更新抢购历史(成功) 任务ID: {queue_item['id']}", "purchase")
+        else:
+            history_entry = {
+                "id": str(uuid.uuid4()),
+                "taskId": queue_item["id"],
+                "planCode": queue_item["planCode"],
+                "datacenter": queue_item["datacenter"],
+                "options": queue_item.get("options", []),
+                "status": "success",
+                "orderId": order_id_val,
+                "orderUrl": order_url_val,
+                "errorMessage": None,
+                "purchaseTime": current_time_iso,
+                "attemptCount": queue_item["retryCount"]
+            }
+            purchase_history.append(history_entry)
+            add_log("INFO", f"创建抢购历史(成功) 任务ID: {queue_item['id']}", "purchase")
+        
         save_data()
         update_stats()
         
@@ -455,23 +450,40 @@ def purchase_server(queue_item):
     
     except ovh.exceptions.APIError as api_e:
         error_msg = str(api_e)
-        # Check for specific "unavailable" type errors if needed
-        is_unavailable_error = "is not available in" in error_msg or "stock" in error_msg.lower()
-
         add_log("ERROR", f"购买 {queue_item['planCode']} 时发生 OVH API 错误: {error_msg}", "purchase")
         if cart_id: add_log("ERROR", f"错误发生时的购物车ID: {cart_id}", "purchase")
         if item_id: add_log("ERROR", f"错误发生时的基础商品ID: {item_id}", "purchase")
         
-        history_entry = {
-            "id": str(uuid.uuid4()),
-            "planCode": queue_item["planCode"],
-            "datacenter": queue_item["datacenter"],
-            "options": queue_item.get("options", []),
-            "status": "failed",
-            "errorMessage": error_msg,
-            "purchaseTime": datetime.now().isoformat()
-        }
-        purchase_history.append(history_entry)
+        # Update or create purchase history entry for API FAILURE
+        existing_history_entry = next((h for h in purchase_history if h.get("taskId") == queue_item["id"]), None)
+        current_time_iso = datetime.now().isoformat()
+
+        if existing_history_entry:
+            existing_history_entry["status"] = "failed"
+            existing_history_entry["orderId"] = None
+            existing_history_entry["orderUrl"] = None
+            existing_history_entry["errorMessage"] = error_msg
+            existing_history_entry["purchaseTime"] = current_time_iso
+            existing_history_entry["attemptCount"] = queue_item["retryCount"]
+            existing_history_entry["options"] = queue_item.get("options", [])
+            add_log("INFO", f"更新抢购历史(API失败) 任务ID: {queue_item['id']}", "purchase")
+        else:
+            history_entry = {
+                "id": str(uuid.uuid4()),
+                "taskId": queue_item["id"],
+                "planCode": queue_item["planCode"],
+                "datacenter": queue_item["datacenter"],
+                "options": queue_item.get("options", []),
+                "status": "failed",
+                "orderId": None,
+                "orderUrl": None,
+                "errorMessage": error_msg,
+                "purchaseTime": current_time_iso,
+                "attemptCount": queue_item["retryCount"]
+            }
+            purchase_history.append(history_entry)
+            add_log("INFO", f"创建抢购历史(API失败) 任务ID: {queue_item['id']}", "purchase")
+
         save_data()
         update_stats()
         return False
@@ -483,16 +495,36 @@ def purchase_server(queue_item):
         if cart_id: add_log("ERROR", f"错误发生时的购物车ID: {cart_id}", "purchase")
         if item_id: add_log("ERROR", f"错误发生时的基础商品ID: {item_id}", "purchase")
 
-        history_entry = {
-            "id": str(uuid.uuid4()),
-            "planCode": queue_item["planCode"],
-            "datacenter": queue_item["datacenter"],
-            "options": queue_item.get("options", []),
-            "status": "failed",
-            "errorMessage": error_msg,
-            "purchaseTime": datetime.now().isoformat()
-        }
-        purchase_history.append(history_entry)
+        # Update or create purchase history entry for GENERAL FAILURE
+        existing_history_entry = next((h for h in purchase_history if h.get("taskId") == queue_item["id"]), None)
+        current_time_iso = datetime.now().isoformat()
+
+        if existing_history_entry:
+            existing_history_entry["status"] = "failed"
+            existing_history_entry["orderId"] = None
+            existing_history_entry["orderUrl"] = None
+            existing_history_entry["errorMessage"] = error_msg
+            existing_history_entry["purchaseTime"] = current_time_iso
+            existing_history_entry["attemptCount"] = queue_item["retryCount"]
+            existing_history_entry["options"] = queue_item.get("options", [])
+            add_log("INFO", f"更新抢购历史(通用失败) 任务ID: {queue_item['id']}", "purchase")
+        else:
+            history_entry = {
+                "id": str(uuid.uuid4()),
+                "taskId": queue_item["id"],
+                "planCode": queue_item["planCode"],
+                "datacenter": queue_item["datacenter"],
+                "options": queue_item.get("options", []),
+                "status": "failed",
+                "orderId": None,
+                "orderUrl": None,
+                "errorMessage": error_msg,
+                "purchaseTime": current_time_iso,
+                "attemptCount": queue_item["retryCount"]
+            }
+            purchase_history.append(history_entry)
+            add_log("INFO", f"创建抢购历史(通用失败) 任务ID: {queue_item['id']}", "purchase")
+        
         save_data()
         update_stats()
         return False
@@ -500,31 +532,38 @@ def purchase_server(queue_item):
 # Process queue items
 def process_queue():
     while True:
-        for item in queue:
+        items_to_process = list(queue) # Create a copy to iterate over
+        for item in items_to_process:
             if item["status"] == "running":
-                # Check if it's time to retry
                 current_time = time.time()
                 last_check_time = item.get("lastCheckTime", 0)
                 
-                if current_time - last_check_time >= item["retryInterval"]:
-                    add_log("INFO", f"Checking availability for {item['planCode']} in {item['datacenter']}", "queue")
+                # 如果是首次尝试 (lastCheckTime为0) 或者到达重试间隔
+                if last_check_time == 0 or (current_time - last_check_time >= item["retryInterval"]):
+                    if last_check_time == 0:
+                        add_log("INFO", f"首次尝试任务 {item['id']}: {item['planCode']} 在 {item['datacenter']}", "queue")
+                    else:
+                        add_log("INFO", f"重试检查任务 {item['id']} (尝试次数: {item['retryCount'] + 1}): {item['planCode']} 在 {item['datacenter']}", "queue")
                     
-                    # Update last check time
+                    # 更新检查时间和重试计数
                     item["lastCheckTime"] = current_time
                     item["retryCount"] += 1
+                    item["updatedAt"] = datetime.now().isoformat()
                     
-                    # Try to purchase
+                    # 尝试购买
                     if purchase_server(item):
                         item["status"] = "completed"
-                        add_log("INFO", f"Purchase successful for {item['planCode']} in {item['datacenter']}", "queue")
+                        item["updatedAt"] = datetime.now().isoformat()
+                        log_message_verb = "首次尝试购买成功" if item["retryCount"] == 1 else f"重试购买成功 (尝试次数: {item['retryCount']})"
+                        add_log("INFO", f"{log_message_verb}: {item['planCode']} 在 {item['datacenter']} (ID: {item['id']})", "queue")
                     else:
-                        add_log("INFO", f"Server not available, retrying later", "queue")
+                        log_message_verb = "首次尝试购买失败或服务器暂无货" if item["retryCount"] == 1 else f"重试购买失败或服务器仍无货 (尝试次数: {item['retryCount']})"
+                        add_log("INFO", f"{log_message_verb}: {item['planCode']} 在 {item['datacenter']} (ID: {item['id']})。将根据重试间隔再次尝试。", "queue")
                     
-                    # Save queue state
-                    save_data()
+                    save_data() # 保存队列状态
+                    update_stats() # 更新统计信息
         
-        # Sleep for a second before checking again
-        time.sleep(1)
+        time.sleep(1) # 每秒检查一次队列
 
 # Start queue processing thread
 def start_queue_processor():
@@ -1574,19 +1613,19 @@ def add_queue_item():
         "planCode": data.get("planCode", ""),
         "datacenter": data.get("datacenter", ""),
         "options": data.get("options", []),
-        "status": "pending",
+        "status": "running",  # 直接设置为 running
         "createdAt": datetime.now().isoformat(),
         "updatedAt": datetime.now().isoformat(),
         "retryInterval": data.get("retryInterval", 30),
-        "retryCount": 0,
-        "lastCheckTime": 0
+        "retryCount": 0, # 初始化为0, process_queue的首次检查会处理
+        "lastCheckTime": 0 # 初始化为0, process_queue的首次检查会处理
     }
     
     queue.append(queue_item)
     save_data()
     update_stats()
     
-    add_log("INFO", f"Added {queue_item['planCode']} in {queue_item['datacenter']} to queue")
+    add_log("INFO", f"添加任务 {queue_item['id']} ({queue_item['planCode']} 在 {queue_item['datacenter']}) 到队列并立即启动 (状态: running)")
     return jsonify({"status": "success", "id": queue_item["id"]})
 
 @app.route('/api/queue/<id>', methods=['DELETE'])
