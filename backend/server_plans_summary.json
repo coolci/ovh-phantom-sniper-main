@@ -1,0 +1,499 @@
+[
+  {
+    "planCode": "24ska01-sgp",
+    "name": "KS-A | Intel i7-6700k",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk40",
+    "name": "KS-4 | Intel Xeon-E3 1230 v6",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "25skc01",
+    "name": "KS-C | Intel Xeon E5-1650v2",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk30-syd",
+    "name": "KS-3 | Intel Xeon-E3 1245 v5",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk20-sgp",
+    "name": "KS-2 | Intel Xeon-D 1540",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk50",
+    "name": "KS-5 | Intel Xeon-E3 1270 v6",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24skstor01",
+    "name": "KS-STOR | Intel Xeon-D 1521",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk40-sgp",
+    "name": "KS-4 | Intel Xeon-E3 1230 v6",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24skgame01-syd",
+    "name": "KS-GAME | Intel Core i7 7700K",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk20",
+    "name": "KS-2 | Intel Xeon-D 1540",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk50-syd",
+    "name": "KS-5 | Intel Xeon-E3 1270 v6",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk40-syd",
+    "name": "KS-4 | Intel Xeon-E3 1230 v6",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk50-sgp",
+    "name": "KS-5 | Intel Xeon-E3 1270 v6",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk10",
+    "name": "KS-1 | Intel Xeon-D 1520",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24skgame01",
+    "name": "KS-GAME | Intel Core i7 7700K",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk20-syd",
+    "name": "KS-2 | Intel Xeon-D 1540",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk30",
+    "name": "KS-3 | Intel Xeon-E3 1245 v5",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk30-sgp",
+    "name": "KS-3 | Intel Xeon-E3 1245 v5",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "25skb01",
+    "name": "KS-B | Intel Xeon E5-1620v2",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24skgame01-sgp",
+    "name": "KS-GAME | Intel Core i7 7700K",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise06",
+    "name": "RISE-6 | Intel Xeon Gold 6312U",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risestor01",
+    "name": "RISE-STOR | AMD Ryzen 7 Pro 3700",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk60",
+    "name": "KS-6 | AMD Epyc 7351P",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise04-mum",
+    "name": "RISE-4 | AMD Epyc 7313",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risegame02-syd",
+    "name": "RISE-GAME-2 | AMD Ryzen 7 5800X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise03-sgp",
+    "name": "RISE-3 | AMD Ryzen 9 5900X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise04-sgp",
+    "name": "RISE-4 | AMD Epyc 7313",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sysgame01",
+    "name": "SYS-GAME-1 | AMD Ryzen 5 3600X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risestor01-mum",
+    "name": "RISE-STOR | AMD Ryzen 7 Pro 3700",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risestor01-sgp",
+    "name": "RISE-STOR | AMD Ryzen 7 Pro 3700",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risegame02",
+    "name": "RISE-GAME-2 | AMD Ryzen 7 5800X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise03",
+    "name": "RISE-3 | AMD Ryzen 9 5900X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sys02",
+    "name": "SYS-2 | Intel Xeon-D 2141I",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sys01",
+    "name": "SYS-1 | Intel Xeon-E 2136",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sysgame02",
+    "name": "SYS-GAME-2 | AMD Ryzen 7 3800X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sysstor01",
+    "name": "SYS-STOR | AMD Ryzen 5 Pro 3600",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sys05",
+    "name": "SYS-5 | Intel Xeon Silver 4214R",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risegame02-sgp",
+    "name": "RISE-GAME-2 | AMD Ryzen 7 5800X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise03-mum",
+    "name": "RISE-3 | AMD Ryzen 9 5900X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sk70",
+    "name": "KS-7 | AMD Epyc 7451",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risegame01",
+    "name": "RISE-GAME-1 | AMD Ryzen 5 5600X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sys04",
+    "name": "SYS-4 | AMD Epyc 7371",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risegame01-syd",
+    "name": "RISE-GAME-1 | AMD Ryzen 5 5600X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sys03",
+    "name": "SYS-3 | Intel Xeon-E 2288G",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise04",
+    "name": "RISE-4 | AMD Epyc 7313",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise06-sgp",
+    "name": "RISE-6 | Intel Xeon Gold 6312U",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24risegame01-sgp",
+    "name": "RISE-GAME-1 | AMD Ryzen 5 5600X",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "25sysle011",
+    "name": "SYS-LE-1",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "25sysle021",
+    "name": "SYS-LE-2",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "25sysle031",
+    "name": "SYS-LE-3",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sys01-sgp",
+    "name": "SYS-1 | Intel Xeon-E 2136",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sys01-syd",
+    "name": "SYS-1 | Intel Xeon-E 2136",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sysstor01-sgp",
+    "name": "SYS-STOR | AMD Ryzen 5 Pro 3600",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24sysstor01-mum",
+    "name": "SYS-STOR | AMD Ryzen 5 Pro 3600",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise05",
+    "name": "RISE-5 | AMD Epyc 7413",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise05-sgp",
+    "name": "RISE-5 | AMD Epyc 7413",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise05-mum",
+    "name": "RISE-5 | AMD Epyc 7413",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise07-sgp",
+    "name": "RISE-7 | AMD Epyc 7402",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise08-sgp",
+    "name": "RISE-8 | AMD Epyc 7532",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise09-sgp",
+    "name": "RISE-9 | AMD Epyc 7642",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise07",
+    "name": "RISE-7 | AMD Epyc 7402",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise08",
+    "name": "RISE-8 | AMD Epyc 7532",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise09",
+    "name": "RISE-9 | AMD Epyc 7642",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "25rises011",
+    "name": "RISE-S-1 | AMD RYZEN 7 9700x",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "25rises012",
+    "name": "RISE-S-2 | AMD RYZEN 7 9700x",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise01-sgp",
+    "name": "RISE-1 | Intel Xeon-E 2386G",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise01",
+    "name": "RISE-1 | Intel Xeon-E 2386G",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise02",
+    "name": "RISE-2 | Intel Xeon-E 2388G",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise02-mum",
+    "name": "RISE-2 | Intel Xeon-E 2388G",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise02-sgp",
+    "name": "RISE-2 | Intel Xeon-E 2388G",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  },
+  {
+    "planCode": "24rise01-mum",
+    "name": "RISE-1 | Intel Xeon-E 2386G",
+    "description": "",
+    "catalogName": "",
+    "family": null
+  }
+]

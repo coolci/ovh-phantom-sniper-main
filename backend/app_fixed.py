@@ -1,4 +1,4 @@
-import os
+﻿import os
 import time
 import json
 import logging
@@ -63,51 +63,51 @@ def load_data():
             with open(CONFIG_FILE, 'r') as f:
                 config = json.load(f)
         except json.JSONDecodeError:
-            print(f"警告: {CONFIG_FILE}文件格式不正确，使用默认值")
+            print(f"璀﹀憡: {CONFIG_FILE}鏂囦欢鏍煎紡涓嶆纭紝浣跨敤榛樿鍊?)
     
     if os.path.exists(LOGS_FILE):
         try:
             with open(LOGS_FILE, 'r') as f:
                 content = f.read().strip()
-                if content:  # 确保文件不是空的
+                if content:  # 纭繚鏂囦欢涓嶆槸绌虹殑
                     logs = json.loads(content)
                 else:
-                    print(f"警告: {LOGS_FILE}文件为空，使用空列表")
+                    print(f"璀﹀憡: {LOGS_FILE}鏂囦欢涓虹┖锛屼娇鐢ㄧ┖鍒楄〃")
         except json.JSONDecodeError:
-            print(f"警告: {LOGS_FILE}文件格式不正确，使用空列表")
+            print(f"璀﹀憡: {LOGS_FILE}鏂囦欢鏍煎紡涓嶆纭紝浣跨敤绌哄垪琛?)
     
     if os.path.exists(QUEUE_FILE):
         try:
             with open(QUEUE_FILE, 'r') as f:
                 content = f.read().strip()
-                if content:  # 确保文件不是空的
+                if content:  # 纭繚鏂囦欢涓嶆槸绌虹殑
                     queue = json.loads(content)
                 else:
-                    print(f"警告: {QUEUE_FILE}文件为空，使用空列表")
+                    print(f"璀﹀憡: {QUEUE_FILE}鏂囦欢涓虹┖锛屼娇鐢ㄧ┖鍒楄〃")
         except json.JSONDecodeError:
-            print(f"警告: {QUEUE_FILE}文件格式不正确，使用空列表")
+            print(f"璀﹀憡: {QUEUE_FILE}鏂囦欢鏍煎紡涓嶆纭紝浣跨敤绌哄垪琛?)
     
     if os.path.exists(HISTORY_FILE):
         try:
             with open(HISTORY_FILE, 'r') as f:
                 content = f.read().strip()
-                if content:  # 确保文件不是空的
+                if content:  # 纭繚鏂囦欢涓嶆槸绌虹殑
                     purchase_history = json.loads(content)
                 else:
-                    print(f"警告: {HISTORY_FILE}文件为空，使用空列表")
+                    print(f"璀﹀憡: {HISTORY_FILE}鏂囦欢涓虹┖锛屼娇鐢ㄧ┖鍒楄〃")
         except json.JSONDecodeError:
-            print(f"警告: {HISTORY_FILE}文件格式不正确，使用空列表")
+            print(f"璀﹀憡: {HISTORY_FILE}鏂囦欢鏍煎紡涓嶆纭紝浣跨敤绌哄垪琛?)
     
     if os.path.exists(SERVERS_FILE):
         try:
             with open(SERVERS_FILE, 'r') as f:
                 content = f.read().strip()
-                if content:  # 确保文件不是空的
+                if content:  # 纭繚鏂囦欢涓嶆槸绌虹殑
                     server_plans = json.loads(content)
                 else:
-                    print(f"警告: {SERVERS_FILE}文件为空，使用空列表")
+                    print(f"璀﹀憡: {SERVERS_FILE}鏂囦欢涓虹┖锛屼娇鐢ㄧ┖鍒楄〃")
         except json.JSONDecodeError:
-            print(f"警告: {SERVERS_FILE}文件格式不正确，使用空列表")
+            print(f"璀﹀憡: {SERVERS_FILE}鏂囦欢鏍煎紡涓嶆纭紝浣跨敤绌哄垪琛?)
     
     # Update stats
     update_stats()
@@ -129,23 +129,23 @@ def save_data():
             json.dump(server_plans, f)
         logging.info("Data saved to files")
     except Exception as e:
-        logging.error(f"保存数据时出错: {str(e)}")
-        print(f"保存数据时出错: {str(e)}")
-        # 尝试单独保存每个文件
+        logging.error(f"淇濆瓨鏁版嵁鏃跺嚭閿? {str(e)}")
+        print(f"淇濆瓨鏁版嵁鏃跺嚭閿? {str(e)}")
+        # 灏濊瘯鍗曠嫭淇濆瓨姣忎釜鏂囦欢
         try_save_file(CONFIG_FILE, config)
         try_save_file(LOGS_FILE, logs)
         try_save_file(QUEUE_FILE, queue)
         try_save_file(HISTORY_FILE, purchase_history)
         try_save_file(SERVERS_FILE, server_plans)
 
-# 尝试保存单个文件
+# 灏濊瘯淇濆瓨鍗曚釜鏂囦欢
 def try_save_file(filename, data):
     try:
         with open(filename, 'w') as f:
             json.dump(data, f)
-        print(f"成功保存 {filename}")
+        print(f"鎴愬姛淇濆瓨 {filename}")
     except Exception as e:
-        print(f"保存 {filename} 时出错: {str(e)}")
+        print(f"淇濆瓨 {filename} 鏃跺嚭閿? {str(e)}")
 
 # Add a log entry
 def add_log(level, message, source="system"):
@@ -234,16 +234,15 @@ def check_server_availability(plan_code):
                 availability = dc_info.get("availability", "unknown")
                 datacenter_name = dc_info.get("datacenter")
                 
-                # 确保可用性状态有正确的值
-                if not availability or availability == "unknown":
+                # 纭繚鍙敤鎬х姸鎬佹湁姝ｇ‘鐨勫€?                if not availability or availability == "unknown":
                     result[datacenter_name] = "unknown"
                 elif availability == "unavailable":
                     result[datacenter_name] = "unavailable"
                 else:
-                    # 任何非"unavailable"或"unknown"的状态都被视为"available"
+                    # 浠讳綍闈?unavailable"鎴?unknown"鐨勭姸鎬侀兘琚涓?available"
                     result[datacenter_name] = availability
                 
-        add_log("INFO", f"成功检查 {plan_code} 的可用性: {result}")
+        add_log("INFO", f"鎴愬姛妫€鏌?{plan_code} 鐨勫彲鐢ㄦ€? {result}")
         return result
     except Exception as e:
         add_log("ERROR", f"Failed to check availability for {plan_code}: {str(e)}")
@@ -312,41 +311,36 @@ def purchase_server(queue_item):
         
         # Add options if any
         if queue_item["options"]:
-            # 过滤选项，只保留硬件相关选项
+            # 杩囨护閫夐」锛屽彧淇濈暀纭欢鐩稿叧閫夐」
             filtered_options = []
             for option in queue_item["options"]:
                 if not option:
                     continue
                 
                 option_lower = option.lower()
-                # 排除许可证相关选项
+                # 鎺掗櫎璁稿彲璇佺浉鍏抽€夐」
                 if (
-                    # Windows许可证
-                    "windows-server" in option_lower or
-                    # SQL Server许可证
-                    "sql-server" in option_lower or
-                    # cPanel许可证
-                    "cpanel-license" in option_lower or
-                    # Plesk许可证
-                    "plesk-" in option_lower or
-                    # 其他常见许可证
-                    "-license-" in option_lower or
-                    # 操作系统选项
+                    # Windows璁稿彲璇?                    "windows-server" in option_lower or
+                    # SQL Server璁稿彲璇?                    "sql-server" in option_lower or
+                    # cPanel璁稿彲璇?                    "cpanel-license" in option_lower or
+                    # Plesk璁稿彲璇?                    "plesk-" in option_lower or
+                    # 鍏朵粬甯歌璁稿彲璇?                    "-license-" in option_lower or
+                    # 鎿嶄綔绯荤粺閫夐」
                     option_lower.startswith("os-") or
-                    # 控制面板
+                    # 鎺у埗闈㈡澘
                     "control-panel" in option_lower or
                     "panel" in option_lower
                 ):
-                    add_log("INFO", f"跳过许可证选项: {option}", "purchase")
+                    add_log("INFO", f"璺宠繃璁稿彲璇侀€夐」: {option}", "purchase")
                     continue
                 
                 filtered_options.append(option)
             
-            add_log("INFO", f"过滤后的硬件选项: {filtered_options}", "purchase")
+            add_log("INFO", f"杩囨护鍚庣殑纭欢閫夐」: {filtered_options}", "purchase")
             
             for option in filtered_options:
                 try:
-                    add_log("INFO", f"添加选项: {option}", "purchase")
+                    add_log("INFO", f"娣诲姞閫夐」: {option}", "purchase")
                     option_payload = {
                         "planCode": option,
                         "pricingMode": "default",
@@ -442,8 +436,15 @@ def load_server_list():
         return []
     
     try:
-        # 保存完整的API原始响应
-        save_raw_api_response(client, config["zone"])
+        # 璁板綍瀹屾暣鐨凙PI鍝嶅簲鐢ㄤ簬璋冭瘯
+        try:
+            add_log("INFO", f"姝ｅ湪浠嶰VH API鑾峰彇鏈嶅姟鍣ㄦ暟鎹?..")
+            raw_response = client.get(f'/order/catalog/public/eco?ovhSubsidiary={config["zone"]}')
+            with open("ovh_api_raw_response.json", "w") as f:
+                json.dump(raw_response, f, indent=2)
+            add_log("INFO", f"宸蹭繚瀛極VH API鍘熷鏁版嵁鍒皁vh_api_raw_response.json")
+        except Exception as e:
+            add_log("ERROR", f"淇濆瓨OVH API鍘熷鏁版嵁澶辫触: {str(e)}")
         
         # Get server models
         catalog = client.get(f'/order/catalog/public/eco?ovhSubsidiary={config["zone"]}')
@@ -465,59 +466,58 @@ def load_server_list():
                         "availability": dc.get("availability", "unknown")
                     })
             
-            # 添加数据中心的名称和区域信息
+            # 娣诲姞鏁版嵁涓績鐨勫悕绉板拰鍖哄煙淇℃伅
             for dc in datacenters:
-                dc_code = dc.get("datacenter", "").lower()[:3]  # 取前三个字符作为数据中心代码
+                dc_code = dc.get("datacenter", "").lower()[:3]  # 鍙栧墠涓変釜瀛楃浣滀负鏁版嵁涓績浠ｇ爜
                 
-                # 根据代码设置名称和区域
-                if dc_code == "gra":
-                    dc["dcName"] = "格拉夫尼茨"
-                    dc["region"] = "法国"
+                # 鏍规嵁浠ｇ爜璁剧疆鍚嶇О鍜屽尯鍩?                if dc_code == "gra":
+                    dc["dcName"] = "鏍兼媺澶凹鑼?
+                    dc["region"] = "娉曞浗"
                 elif dc_code == "sbg":
-                    dc["dcName"] = "斯特拉斯堡"
-                    dc["region"] = "法国"
+                    dc["dcName"] = "鏂壒鎷夋柉鍫?
+                    dc["region"] = "娉曞浗"
                 elif dc_code == "rbx":
-                    dc["dcName"] = "鲁贝"
-                    dc["region"] = "法国"
+                    dc["dcName"] = "椴佽礉"
+                    dc["region"] = "娉曞浗"
                 elif dc_code == "bhs":
-                    dc["dcName"] = "博阿尔诺"
-                    dc["region"] = "加拿大"
+                    dc["dcName"] = "鍗氶樋灏旇"
+                    dc["region"] = "鍔犳嬁澶?
                 elif dc_code == "hil":
-                    dc["dcName"] = "希尔斯伯勒"
-                    dc["region"] = "美国"
+                    dc["dcName"] = "甯屽皵鏂集鍕?
+                    dc["region"] = "缇庡浗"
                 elif dc_code == "vin":
-                    dc["dcName"] = "维也纳"
-                    dc["region"] = "美国"
+                    dc["dcName"] = "缁翠篃绾?
+                    dc["region"] = "缇庡浗"
                 elif dc_code == "lim":
-                    dc["dcName"] = "利马索尔"
-                    dc["region"] = "塞浦路斯"
+                    dc["dcName"] = "鍒╅┈绱㈠皵"
+                    dc["region"] = "濉炴郸璺柉"
                 elif dc_code == "sgp":
-                    dc["dcName"] = "新加坡"
-                    dc["region"] = "新加坡"
+                    dc["dcName"] = "鏂板姞鍧?
+                    dc["region"] = "鏂板姞鍧?
                 elif dc_code == "syd":
-                    dc["dcName"] = "悉尼"
-                    dc["region"] = "澳大利亚"
+                    dc["dcName"] = "鎮夊凹"
+                    dc["region"] = "婢冲ぇ鍒╀簹"
                 elif dc_code == "waw":
-                    dc["dcName"] = "华沙"
-                    dc["region"] = "波兰"
+                    dc["dcName"] = "鍗庢矙"
+                    dc["region"] = "娉㈠叞"
                 elif dc_code == "fra":
-                    dc["dcName"] = "法兰克福"
-                    dc["region"] = "德国"
+                    dc["dcName"] = "娉曞叞鍏嬬"
+                    dc["region"] = "寰峰浗"
                 elif dc_code == "lon":
-                    dc["dcName"] = "伦敦"
-                    dc["region"] = "英国"
+                    dc["dcName"] = "浼︽暒"
+                    dc["region"] = "鑻卞浗"
                 elif dc_code == "eri":
-                    dc["dcName"] = "厄斯沃尔"
-                    dc["region"] = "英国"
+                    dc["dcName"] = "鍘勬柉娌冨皵"
+                    dc["region"] = "鑻卞浗"
                 else:
-                    dc["dcName"] = dc.get("datacenter", "未知")
-                    dc["region"] = "未知"
+                    dc["dcName"] = dc.get("datacenter", "鏈煡")
+                    dc["region"] = "鏈煡"
             
             # Extract server details
             default_options = []
             available_options = []
             
-            # 创建初始服务器信息对象 - 确保在解析特定字段前就已创建
+            # 鍒涘缓鍒濆鏈嶅姟鍣ㄤ俊鎭璞?- 纭繚鍦ㄨВ鏋愮壒瀹氬瓧娈靛墠灏卞凡鍒涘缓
             server_info = {
                 "planCode": plan_code,
                 "name": plan.get("invoiceName", ""),
@@ -532,65 +532,16 @@ def load_server_list():
                 "availableOptions": available_options
             }
             
-            # 处理特定系列服务器的特殊逻辑
-            special_server_processed = False
-            try:
-                # 检查是否为SYSLE系列服务器
-                if "sysle" in plan_code.lower():
-                    add_log("INFO", f"检测到SYSLE系列服务器: {plan_code}")
-                    
-                    # 尝试从plan_code提取信息
-                    # 通常SYSLE的格式为"25sysle021"，可能包含CPU型号或配置信息
-                    server_info["cpu"] = "SYSLE系列CPU"
-                    
-                    # 尝试寻找更具体的信息
-                    # 保存原始数据以便分析
-                    try:
-                        with open(f"sysle_server_{plan_code}.json", "w") as f:
-                            json.dump(plan, f, indent=2)
-                        add_log("INFO", f"已保存SYSLE服务器{plan_code}的原始数据")
-                    except Exception as e:
-                        add_log("WARNING", f"保存SYSLE服务器数据时出错: {str(e)}")
-                    
-                    special_server_processed = True
-                
-                # 检查是否为SK系列服务器
-                elif "sk" in plan_code.lower():
-                    add_log("INFO", f"检测到SK系列服务器: {plan_code}")
-                    
-                    # SK系列可能有特殊格式，如"24sk30-syd"
-                    server_info["cpu"] = "SK系列专用CPU"
-                    
-                    # 尝试寻找更具体的信息
-                    # 保存原始数据以便分析
-                    try:
-                        with open(f"sk_server_{plan_code}.json", "w") as f:
-                            json.dump(plan, f, indent=2)
-                        add_log("INFO", f"已保存SK服务器{plan_code}的原始数据")
-                    except Exception as e:
-                        add_log("WARNING", f"保存SK服务器数据时出错: {str(e)}")
-                    
-                    special_server_processed = True
-                
-                # 添加更多特殊系列处理...
-            except Exception as e:
-                add_log("WARNING", f"处理特殊系列服务器时出错: {str(e)}")
-                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
-            
-            # 如果是特殊处理的服务器，记录日志
-            if special_server_processed:
-                add_log("INFO", f"已对服务器 {plan_code} 应用特殊处理逻辑")
-            
-            # 获取服务器名称和描述，确保它们不为空
+            # 鑾峰彇鏈嶅姟鍣ㄥ悕绉板拰鎻忚堪锛岀‘淇濆畠浠笉涓虹┖
             if not server_info["name"] and plan.get("displayName"):
                 server_info["name"] = plan.get("displayName")
             
             if not server_info["description"] and plan.get("displayName"):
                 server_info["description"] = plan.get("displayName")
             
-            # 获取推荐配置和可选配置 - 使用多种方法处理不同格式
+            # 鑾峰彇鎺ㄨ崘閰嶇疆鍜屽彲閫夐厤缃?- 浣跨敤澶氱鏂规硶澶勭悊涓嶅悓鏍煎紡
             try:
-                # 方法 1: 检查plan.default.options
+                # 鏂规硶 1: 妫€鏌lan.default.options
                 if plan.get("default") and isinstance(plan.get("default"), dict) and plan.get("default").get("options"):
                     for default_opt in plan.get("default").get("options"):
                         if isinstance(default_opt, dict):
@@ -603,7 +554,7 @@ def load_server_list():
                                     "value": option_code
                                 })
                 
-                # 方法 2: 检查plan.addons
+                # 鏂规硶 2: 妫€鏌lan.addons
                 if plan.get("addons") and isinstance(plan.get("addons"), list):
                     for addon in plan.get("addons"):
                         if not isinstance(addon, dict):
@@ -613,17 +564,16 @@ def load_server_list():
                         if not addon_plan_code:
                             continue
                         
-                        # 跳过已经在默认选项中的配置
+                        # 璺宠繃宸茬粡鍦ㄩ粯璁ら€夐」涓殑閰嶇疆
                         if any(opt["value"] == addon_plan_code for opt in default_options):
                             continue
                         
-                        # 添加到可选配置列表
-                        available_options.append({
+                        # 娣诲姞鍒板彲閫夐厤缃垪琛?                        available_options.append({
                             "label": addon.get("description", addon_plan_code),
                             "value": addon_plan_code
                         })
                 
-                # 方法 3: 检查plan.product.options
+                # 鏂规硶 3: 妫€鏌lan.product.options
                 if plan.get("product") and isinstance(plan.get("product"), dict) and plan.get("product").get("options"):
                     product_options = plan.get("product").get("options")
                     if isinstance(product_options, list):
@@ -640,27 +590,15 @@ def load_server_list():
                                     "value": option_code
                                 })
                 
-                # 方法 4: 尝试从plan.addonFamilies中提取硬件信息
-                printed_example = False
+                # 鏂规硶 4: 灏濊瘯浠巔lan.addonFamilies涓彁鍙栫‖浠朵俊鎭?                printed_example = False
                 try:
                     if plan.get("addonFamilies") and isinstance(plan.get("addonFamilies"), list):
-                        # 尝试保存完整的addonFamilies数据用于更深入分析
-                        try:
-                            with open(f"addonFamilies_{plan_code}.json", "w") as f:
-                                json.dump(plan.get("addonFamilies"), f, indent=2)
-                            add_log("INFO", f"已保存服务器 {plan_code} 的addonFamilies数据")
-                        except Exception as e:
-                            add_log("WARNING", f"保存addonFamilies数据时出错: {str(e)}")
-                        
-                        # 打印一个完整的addonFamilies示例用于调试
+                        # 鎵撳嵃涓€涓畬鏁寸殑addonFamilies绀轰緥鐢ㄤ簬璋冭瘯
                         if len(plan.get("addonFamilies")) > 0 and not printed_example:
-                            try:
-                                add_log("INFO", f"addonFamilies示例: {json.dumps(plan.get('addonFamilies')[0], indent=2)}")
-                                printed_example = True
-                            except Exception as e:
-                                add_log("WARNING", f"无法序列化addonFamilies示例: {str(e)}")
+                            add_log("INFO", f"addonFamilies绀轰緥: {json.dumps(plan.get('addonFamilies')[0], indent=2)}")
+                            printed_example = True
                         
-                        # 尝试保存所有带宽相关的选项用于调试
+                        # 灏濊瘯淇濆瓨鎵€鏈夊甫瀹界浉鍏崇殑閫夐」鐢ㄤ簬璋冭瘯
                         try:
                             bandwidth_options = []
                             for family in plan.get("addonFamilies"):
@@ -675,54 +613,42 @@ def load_server_list():
                             if bandwidth_options:
                                 with open(f"bandwidth_options_{plan_code}.json", "w") as f:
                                     json.dump(bandwidth_options, f, indent=2)
-                                add_log("INFO", f"已保存{plan_code}的带宽选项到bandwidth_options_{plan_code}.json")
+                                add_log("INFO", f"宸蹭繚瀛榹plan_code}鐨勫甫瀹介€夐」鍒癰andwidth_options_{plan_code}.json")
                         except Exception as e:
-                            add_log("WARNING", f"保存带宽选项时出错: {str(e)}")
+                            add_log("WARNING", f"淇濆瓨甯﹀閫夐」鏃跺嚭閿? {str(e)}")
                         
-                        # 重置可选配置列表
-                        temp_available_options = []
+                        # 閲嶇疆鍙€夐厤缃垪琛?                        temp_available_options = []
                         
-                        # 提取addonFamilies信息
+                        # 鎻愬彇addonFamilies淇℃伅
                         for family in plan.get("addonFamilies"):
-                            if not isinstance(family, dict):
-                                add_log("WARNING", f"addonFamily不是字典类型: {family}")
-                                continue
-                                
-                            family_name = family.get("name", "").lower()  # 注意: 在API响应中是'name'而不是'family'
-                            default_addon = family.get("default")  # 获取默认选项
+                            family_name = family.get("name", "").lower()  # 娉ㄦ剰: 鍦ˋPI鍝嶅簲涓槸'name'鑰屼笉鏄?family'
+                            default_addon = family.get("default")  # 鑾峰彇榛樿閫夐」
                             
-                            # 提取可选配置
-                            if family.get("addons") and isinstance(family.get("addons"), list):
+                            # 鎻愬彇鍙€夐厤缃?                            if family.get("addons") and isinstance(family.get("addons"), list):
                                 for addon_code in family.get("addons"):
-                                    # 在API响应中，addons是字符串数组而不是对象数组
-                                    if not isinstance(addon_code, str):
+                                    # 鍦ˋPI鍝嶅簲涓紝addons鏄瓧绗︿覆鏁扮粍鑰屼笉鏄璞℃暟缁?                                    if not isinstance(addon_code, str):
                                         continue
                                     
-                                    # 标记是否为默认选项
+                                    # 鏍囪鏄惁涓洪粯璁ら€夐」
                                     is_default = (addon_code == default_addon)
                                     
-                                    # 从addon_code解析描述信息
+                                    # 浠巃ddon_code瑙ｆ瀽鎻忚堪淇℃伅
                                     addon_desc = addon_code
                                     
-                                    # 过滤掉许可证相关选项
+                                    # 杩囨护鎺夎鍙瘉鐩稿叧閫夐」
                                     if (
-                                        # Windows许可证
-                                        "windows-server" in addon_code.lower() or
-                                        # SQL Server许可证
-                                        "sql-server" in addon_code.lower() or
-                                        # cPanel许可证
-                                        "cpanel-license" in addon_code.lower() or
-                                        # Plesk许可证
-                                        "plesk-" in addon_code.lower() or
-                                        # 其他常见许可证
-                                        "-license-" in addon_code.lower() or
-                                        # 操作系统选项
+                                        # Windows璁稿彲璇?                                        "windows-server" in addon_code.lower() or
+                                        # SQL Server璁稿彲璇?                                        "sql-server" in addon_code.lower() or
+                                        # cPanel璁稿彲璇?                                        "cpanel-license" in addon_code.lower() or
+                                        # Plesk璁稿彲璇?                                        "plesk-" in addon_code.lower() or
+                                        # 鍏朵粬甯歌璁稿彲璇?                                        "-license-" in addon_code.lower() or
+                                        # 鎿嶄綔绯荤粺閫夐」
                                         addon_code.lower().startswith("os-") or
-                                        # 控制面板
+                                        # 鎺у埗闈㈡澘
                                         "control-panel" in addon_code.lower() or
                                         "panel" in addon_code.lower()
                                     ):
-                                        # 跳过许可证类选项
+                                        # 璺宠繃璁稿彲璇佺被閫夐」
                                         continue
                                     
                                     if addon_code:
@@ -733,97 +659,74 @@ def load_server_list():
                                             "isDefault": is_default
                                         })
                                         
-                                        # 如果是默认选项，添加到默认选项列表
+                                        # 濡傛灉鏄粯璁ら€夐」锛屾坊鍔犲埌榛樿閫夐」鍒楄〃
                                         if is_default:
                                             default_options.append({
                                                 "label": addon_desc,
                                                 "value": addon_code
                                             })
                             
-                            # 根据family名称设置对应的硬件信息
-                            if family_name and family.get("addons") and isinstance(family.get("addons"), list):
-                                # 获取默认选项的值
-                                default_value = family.get("default")
+                            # 鏍规嵁family鍚嶇О璁剧疆瀵瑰簲鐨勭‖浠朵俊鎭?                            if family_name and family.get("addons") and isinstance(family.get("addons"), list):
+                                # 鑾峰彇榛樿閫夐」鐨勫€?                                default_value = family.get("default")
                                 
-                                # CPU信息
+                                # CPU淇℃伅
                                 if ("cpu" in family_name or "processor" in family_name) and server_info["cpu"] == "N/A":
                                     if default_value:
                                         server_info["cpu"] = default_value
-                                        add_log("INFO", f"从addonFamilies默认选项提取CPU: {default_value} 给 {plan_code}")
-                                        
-                                        # 尝试从CPU选项中提取更详细信息
-                                        try:
-                                            # 记录CPU选项的完整列表，方便调试
-                                            if family.get("addons") and isinstance(family.get("addons"), list):
-                                                cpu_options = []
-                                                for cpu_addon in family.get("addons"):
-                                                    if isinstance(cpu_addon, str):
-                                                        cpu_options.append(cpu_addon)
-                                                
-                                                if cpu_options:
-                                                    add_log("INFO", f"服务器 {plan_code} 的CPU选项: {', '.join(cpu_options)}")
-                                                    
-                                                    # 保存到文件以便更详细分析
-                                                    try:
-                                                        with open(f"cpu_options_{plan_code}.json", "w") as f:
-                                                            json.dump({"options": cpu_options, "default": default_value}, f, indent=2)
-                                                    except Exception as e:
-                                                        add_log("WARNING", f"保存CPU选项时出错: {str(e)}")
-                                        except Exception as e:
-                                            add_log("WARNING", f"解析CPU选项时出错: {str(e)}")
+                                        add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇CPU: {default_value} 缁?{plan_code}")
                                 
-                                # 内存信息
+                                # 鍐呭瓨淇℃伅
                                 elif ("memory" in family_name or "ram" in family_name) and server_info["memory"] == "N/A":
                                     if default_value:
-                                        # 尝试提取内存大小
+                                        # 灏濊瘯鎻愬彇鍐呭瓨澶у皬
                                         ram_size = ""
                                         ram_match = re.search(r'ram-(\d+)g', default_value, re.IGNORECASE)
                                         if ram_match:
                                             ram_size = f"{ram_match.group(1)} GB"
                                             server_info["memory"] = ram_size
-                                            add_log("INFO", f"从addonFamilies默认选项提取内存: {ram_size} 给 {plan_code}")
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇鍐呭瓨: {ram_size} 缁?{plan_code}")
                                         else:
                                             server_info["memory"] = default_value
-                                            add_log("INFO", f"从addonFamilies默认选项提取内存(原始值): {default_value} 给 {plan_code}")
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇鍐呭瓨(鍘熷鍊?: {default_value} 缁?{plan_code}")
                                 
-                                # 存储信息
+                                # 瀛樺偍淇℃伅
                                 elif ("storage" in family_name or "disk" in family_name or "drive" in family_name or "ssd" in family_name or "hdd" in family_name) and server_info["storage"] == "N/A":
                                     if default_value:
-                                        # 尝试从存储代码中提取信息
+                                        # 灏濊瘯浠庡瓨鍌ㄤ唬鐮佷腑鎻愬彇淇℃伅
                                         storage_match = re.search(r'(\d+)x(\d+)(ssd|hdd|nvme)', default_value, re.IGNORECASE)
                                         if storage_match:
                                             count = storage_match.group(1)
                                             size = storage_match.group(2)
                                             type_str = storage_match.group(3).upper()
                                             server_info["storage"] = f"{count}x {size}GB {type_str}"
-                                            add_log("INFO", f"从addonFamilies默认选项提取存储: {server_info['storage']} 给 {plan_code}")
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇瀛樺偍: {server_info['storage']} 缁?{plan_code}")
                                         else:
                                             server_info["storage"] = default_value
-                                            add_log("INFO", f"从addonFamilies默认选项提取存储(原始值): {default_value} 给 {plan_code}")
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇瀛樺偍(鍘熷鍊?: {default_value} 缁?{plan_code}")
                                 
-                                # 带宽信息
+                                # 甯﹀淇℃伅
                                 elif ("bandwidth" in family_name or "traffic" in family_name or "network" in family_name) and server_info["bandwidth"] == "N/A":
                                     if default_value:
-                                        add_log("DEBUG", f"处理带宽选项: {default_value}")
+                                        add_log("DEBUG", f"澶勭悊甯﹀閫夐」: {default_value}")
                                         
-                                        # 格式1: traffic-5tb-100-24sk-apac (带宽限制和流量限制)
+                                        # 鏍煎紡1: traffic-5tb-100-24sk-apac (甯﹀闄愬埗鍜屾祦閲忛檺鍒?
                                         traffic_bw_match = re.search(r'traffic-(\d+)(tb|gb|mb)-(\d+)', default_value, re.IGNORECASE)
                                         if traffic_bw_match:
                                             size = traffic_bw_match.group(1)
                                             unit = traffic_bw_match.group(2).upper()
                                             bw_value = traffic_bw_match.group(3)
-                                            server_info["bandwidth"] = f"{bw_value} Mbps / {size} {unit}流量"
-                                            add_log("INFO", f"从addonFamilies默认选项提取带宽和流量: {server_info['bandwidth']} 给 {plan_code}")
+                                            server_info["bandwidth"] = f"{bw_value} Mbps / {size} {unit}娴侀噺"
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇甯﹀鍜屾祦閲? {server_info['bandwidth']} 缁?{plan_code}")
                                         
-                                        # 格式2: traffic-5tb (仅流量限制)
+                                        # 鏍煎紡2: traffic-5tb (浠呮祦閲忛檺鍒?
                                         elif re.search(r'traffic-(\d+)(tb|gb|mb)$', default_value, re.IGNORECASE):
                                             simple_traffic_match = re.search(r'traffic-(\d+)(tb|gb|mb)', default_value, re.IGNORECASE)
                                             size = simple_traffic_match.group(1)
                                             unit = simple_traffic_match.group(2).upper()
-                                            server_info["bandwidth"] = f"{size} {unit}流量"
-                                            add_log("INFO", f"从addonFamilies默认选项提取流量: {server_info['bandwidth']} 给 {plan_code}")
+                                            server_info["bandwidth"] = f"{size} {unit}娴侀噺"
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇娴侀噺: {server_info['bandwidth']} 缁?{plan_code}")
                                         
-                                        # 格式3: bandwidth-100 (仅带宽限制)
+                                        # 鏍煎紡3: bandwidth-100 (浠呭甫瀹介檺鍒?
                                         elif re.search(r'bandwidth-(\d+)', default_value, re.IGNORECASE):
                                             bandwidth_match = re.search(r'bandwidth-(\d+)', default_value, re.IGNORECASE)
                                             bw_value = int(bandwidth_match.group(1))
@@ -831,44 +734,41 @@ def load_server_list():
                                                 server_info["bandwidth"] = f"{bw_value/1000:.1f} Gbps".replace(".0 ", " ")
                                             else:
                                                 server_info["bandwidth"] = f"{bw_value} Mbps"
-                                            add_log("INFO", f"从addonFamilies默认选项提取带宽: {server_info['bandwidth']} 给 {plan_code}")
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇甯﹀: {server_info['bandwidth']} 缁?{plan_code}")
                                         
-                                        # 格式4: traffic-unlimited (无限流量)
+                                        # 鏍煎紡4: traffic-unlimited (鏃犻檺娴侀噺)
                                         elif "traffic-unlimited" in default_value.lower():
-                                            server_info["bandwidth"] = "无限流量"
-                                            add_log("INFO", f"从addonFamilies默认选项提取带宽: 无限流量 给 {plan_code}")
+                                            server_info["bandwidth"] = "鏃犻檺娴侀噺"
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇甯﹀: 鏃犻檺娴侀噺 缁?{plan_code}")
                                         
-                                        # 格式5: bandwidth-guarantee (保证带宽)
+                                        # 鏍煎紡5: bandwidth-guarantee (淇濊瘉甯﹀)
                                         elif "guarantee" in default_value.lower() or "guaranteed" in default_value.lower():
                                             bw_guarantee_match = re.search(r'(\d+)', default_value)
                                             if bw_guarantee_match:
                                                 bw_value = int(bw_guarantee_match.group(1))
-                                                server_info["bandwidth"] = f"{bw_value} Mbps (保证带宽)"
-                                                add_log("INFO", f"从addonFamilies默认选项提取保证带宽: {server_info['bandwidth']} 给 {plan_code}")
+                                                server_info["bandwidth"] = f"{bw_value} Mbps (淇濊瘉甯﹀)"
+                                                add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇淇濊瘉甯﹀: {server_info['bandwidth']} 缁?{plan_code}")
                                             else:
-                                                server_info["bandwidth"] = "保证带宽"
-                                                add_log("INFO", f"从addonFamilies默认选项提取保证带宽(无具体值) 给 {plan_code}")
+                                                server_info["bandwidth"] = "淇濊瘉甯﹀"
+                                                add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇淇濊瘉甯﹀(鏃犲叿浣撳€? 缁?{plan_code}")
                                         
-                                        # 无法识别的格式，使用原始值
-                                        else:
+                                        # 鏃犳硶璇嗗埆鐨勬牸寮忥紝浣跨敤鍘熷鍊?                                        else:
                                             server_info["bandwidth"] = default_value
-                                            add_log("INFO", f"从addonFamilies默认选项提取带宽(原始值): {default_value} 给 {plan_code}")
+                                            add_log("INFO", f"浠巃ddonFamilies榛樿閫夐」鎻愬彇甯﹀(鍘熷鍊?: {default_value} 缁?{plan_code}")
                         
-                        # 将处理好的可选配置添加到服务器信息中
+                        # 灏嗗鐞嗗ソ鐨勫彲閫夐厤缃坊鍔犲埌鏈嶅姟鍣ㄤ俊鎭腑
                         if temp_available_options:
                             available_options = temp_available_options
                 
                 except Exception as e:
-                    add_log("ERROR", f"解析addonFamilies时出错: {str(e)}")
-                    add_log("ERROR", f"错误详情: {traceback.format_exc()}")
+                    add_log("ERROR", f"瑙ｆ瀽addonFamilies鏃跺嚭閿? {str(e)}")
+                    add_log("ERROR", f"閿欒璇︽儏: {traceback.format_exc()}")
                 
-                # 方法 5: 检查plan.pricings中的配置项
-                if plan.get("pricings") and isinstance(plan.get("pricings"), dict):
+                # 鏂规硶 5: 妫€鏌lan.pricings涓殑閰嶇疆椤?                if plan.get("pricings") and isinstance(plan.get("pricings"), dict):
                     for pricing_key, pricing_value in plan.get("pricings").items():
                         if isinstance(pricing_value, dict) and pricing_value.get("options"):
                             for option_code, option_details in pricing_value.get("options").items():
-                                # 跳过已经在其他列表中的项目
-                                if any(opt["value"] == option_code for opt in default_options) or any(opt["value"] == option_code for opt in available_options):
+                                # 璺宠繃宸茬粡鍦ㄥ叾浠栧垪琛ㄤ腑鐨勯」鐩?                                if any(opt["value"] == option_code for opt in default_options) or any(opt["value"] == option_code for opt in available_options):
                                     continue
                                 
                                 option_label = option_code
@@ -880,50 +780,44 @@ def load_server_list():
                                     "value": option_code
                                 })
                 
-                # 记录找到的选项数量
-                add_log("INFO", f"找到 {len(default_options)} 个默认选项和 {len(available_options)} 个可选配置用于 {plan_code}")
+                # 璁板綍鎵惧埌鐨勯€夐」鏁伴噺
+                add_log("INFO", f"鎵惧埌 {len(default_options)} 涓粯璁ら€夐」鍜?{len(available_options)} 涓彲閫夐厤缃敤浜?{plan_code}")
                 
             except Exception as e:
-                add_log("WARNING", f"解析 {plan_code} 选项时出错: {str(e)}")
+                add_log("WARNING", f"瑙ｆ瀽 {plan_code} 閫夐」鏃跺嚭閿? {str(e)}")
             
-            # 解析方法 1: 尝试从properties中提取硬件详情
-            try:
+            # 瑙ｆ瀽鏂规硶 1: 灏濊瘯浠巔roperties涓彁鍙栫‖浠惰鎯?            try:
                 if plan.get("details") and plan.get("details").get("properties"):
                     for prop in plan.get("details").get("properties"):
-                        # 添加类型检查，确保prop是字典类型
-                        if not isinstance(prop, dict):
-                            add_log("WARNING", f"属性项不是字典类型: {prop}")
-                            continue
-                            
                         prop_name = prop.get("name", "").lower()
                         value = prop.get("value", "N/A")
                         
                         if value and value != "N/A":
                             if any(cpu_term in prop_name for cpu_term in ["cpu", "processor"]):
                                 server_info["cpu"] = value
-                                add_log("INFO", f"从properties提取CPU: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠巔roperties鎻愬彇CPU: {value} 缁?{plan_code}")
                             elif any(mem_term in prop_name for mem_term in ["memory", "ram"]):
                                 server_info["memory"] = value
-                                add_log("INFO", f"从properties提取内存: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠巔roperties鎻愬彇鍐呭瓨: {value} 缁?{plan_code}")
                             elif any(storage_term in prop_name for storage_term in ["storage", "disk", "hdd", "ssd"]):
                                 server_info["storage"] = value
-                                add_log("INFO", f"从properties提取存储: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠巔roperties鎻愬彇瀛樺偍: {value} 缁?{plan_code}")
                             elif "bandwidth" in prop_name:
                                 if any(private_term in prop_name for private_term in ["vrack", "private", "internal"]):
                                     server_info["vrackBandwidth"] = value
-                                    add_log("INFO", f"从properties提取vRack带宽: {value} 给 {plan_code}")
+                                    add_log("INFO", f"浠巔roperties鎻愬彇vRack甯﹀: {value} 缁?{plan_code}")
                                 else:
                                     server_info["bandwidth"] = value
-                                    add_log("INFO", f"从properties提取带宽: {value} 给 {plan_code}")
+                                    add_log("INFO", f"浠巔roperties鎻愬彇甯﹀: {value} 缁?{plan_code}")
             except Exception as e:
-                add_log("WARNING", f"解析 {plan_code} 属性时出错: {str(e)}")
+                add_log("WARNING", f"瑙ｆ瀽 {plan_code} 灞炴€ф椂鍑洪敊: {str(e)}")
             
-            # 解析方法 2: 尝试从名称中提取信息
+            # 瑙ｆ瀽鏂规硶 2: 灏濊瘯浠庡悕绉颁腑鎻愬彇淇℃伅
             try:
                 server_name = server_info["name"]
                 server_desc = server_info["description"] if server_info["description"] else ""
                 
-                # 保存原始数据用于调试
+                # 淇濆瓨鍘熷鏁版嵁鐢ㄤ簬璋冭瘯
                 try:
                     with open(f"server_details_{plan_code}.json", "w") as f:
                         json.dump({
@@ -932,52 +826,48 @@ def load_server_list():
                             "planCode": plan_code
                         }, f, indent=2)
                 except Exception as e:
-                    add_log("WARNING", f"保存服务器详情时出错: {str(e)}")
+                    add_log("WARNING", f"淇濆瓨鏈嶅姟鍣ㄨ鎯呮椂鍑洪敊: {str(e)}")
                 
-                # 检查是否为KS/RISE系列服务器，它们通常使用 "KS-XX | CPU信息" 格式
+                # 妫€鏌ユ槸鍚︿负KS/RISE绯诲垪鏈嶅姟鍣紝瀹冧滑閫氬父浣跨敤 "KS-XX | CPU淇℃伅" 鏍煎紡
                 if "|" in server_name:
                     parts = server_name.split("|")
                     if len(parts) > 1 and server_info["cpu"] == "N/A":
                         cpu_part = parts[1].strip()
                         server_info["cpu"] = cpu_part
-                        add_log("INFO", f"从服务器名称提取CPU: {cpu_part} 给 {plan_code}")
+                        add_log("INFO", f"浠庢湇鍔″櫒鍚嶇О鎻愬彇CPU: {cpu_part} 缁?{plan_code}")
                         
-                        # 尝试从CPU部分提取更多信息
+                        # 灏濊瘯浠嶤PU閮ㄥ垎鎻愬彇鏇村淇℃伅
                         if "core" in cpu_part.lower():
-                            # 例如: "4 Core, 8 Thread, xxxx"
+                            # 渚嬪: "4 Core, 8 Thread, xxxx"
                             core_parts = cpu_part.split(",")
                             if len(core_parts) > 1:
                                 server_info["cpu"] = core_parts[0].strip()
                 
-                # 提取CPU型号信息
+                # 鎻愬彇CPU鍨嬪彿淇℃伅
                 if server_info["cpu"] == "N/A":
-                    # 尝试匹配常见的CPU关键词
-                    cpu_keywords = ["i7-", "i9-", "ryzen", "xeon", "epyc", "cpu", "intel", "amd", "processor"]
+                    # 灏濊瘯鍖归厤甯歌鐨凜PU鍏抽敭璇?                    cpu_keywords = ["i7-", "i9-", "ryzen", "xeon", "epyc", "cpu", "intel", "amd", "processor"]
                     full_text = f"{server_name} {server_desc}".lower()
                     
                     for keyword in cpu_keywords:
                         if keyword in full_text.lower():
-                            # 找到关键词的位置
+                            # 鎵惧埌鍏抽敭璇嶇殑浣嶇疆
                             pos = full_text.lower().find(keyword)
                             if pos >= 0:
-                                # 提取关键词周围的文本
+                                # 鎻愬彇鍏抽敭璇嶅懆鍥寸殑鏂囨湰
                                 start = max(0, pos - 5)
                                 end = min(len(full_text), pos + 25)
                                 cpu_text = full_text[start:end]
                                 
-                                # 尝试清理提取的文本
-                                cpu_text = re.sub(r'[^\w\s\-,.]', ' ', cpu_text)
+                                # 灏濊瘯娓呯悊鎻愬彇鐨勬枃鏈?                                cpu_text = re.sub(r'[^\w\s\-,.]', ' ', cpu_text)
                                 cpu_text = ' '.join(cpu_text.split())
                                 
                                 if cpu_text:
                                     server_info["cpu"] = cpu_text
-                                    add_log("INFO", f"从文本中提取CPU关键字: {cpu_text} 给 {plan_code}")
+                                    add_log("INFO", f"浠庢枃鏈腑鎻愬彇CPU鍏抽敭瀛? {cpu_text} 缁?{plan_code}")
                                     break
                 
-                # 从服务器名称中提取内存信息
-                if server_info["memory"] == "N/A":
-                    # 寻找内存关键词
-                    mem_match = None
+                # 浠庢湇鍔″櫒鍚嶇О涓彁鍙栧唴瀛樹俊鎭?                if server_info["memory"] == "N/A":
+                    # 瀵绘壘鍐呭瓨鍏抽敭璇?                    mem_match = None
                     mem_patterns = [
                         r'(\d+)\s*GB\s*RAM', 
                         r'RAM\s*(\d+)\s*GB',
@@ -996,12 +886,10 @@ def load_server_list():
                     if mem_match:
                         memory_size = mem_match.group(1)
                         server_info["memory"] = f"{memory_size} GB"
-                        add_log("INFO", f"从文本中提取内存: {server_info['memory']} 给 {plan_code}")
+                        add_log("INFO", f"浠庢枃鏈腑鎻愬彇鍐呭瓨: {server_info['memory']} 缁?{plan_code}")
                 
-                # 从服务器名称中提取存储信息
-                if server_info["storage"] == "N/A":
-                    # 寻找存储关键词
-                    storage_patterns = [
+                # 浠庢湇鍔″櫒鍚嶇О涓彁鍙栧瓨鍌ㄤ俊鎭?                if server_info["storage"] == "N/A":
+                    # 瀵绘壘瀛樺偍鍏抽敭璇?                    storage_patterns = [
                         r'(\d+)\s*[xX]\s*(\d+)\s*GB\s*(SSD|HDD|NVMe)',
                         r'(\d+)\s*(SSD|HDD|NVMe)\s*(\d+)\s*GB',
                         r'(\d+)\s*TB\s*(SSD|HDD|NVMe)',
@@ -1012,57 +900,45 @@ def load_server_list():
                     for pattern in storage_patterns:
                         match = re.search(pattern, full_text, re.IGNORECASE)
                         if match:
-                            if match.lastindex == 3:  # 匹配了第一种模式
-                                count = match.group(1)
+                            if match.lastindex == 3:  # 鍖归厤浜嗙涓€绉嶆ā寮?                                count = match.group(1)
                                 size = match.group(2)
                                 disk_type = match.group(3).upper()
                                 server_info["storage"] = f"{count}x {size}GB {disk_type}"
-                            elif match.lastindex == 2:  # 匹配了最后一种模式
-                                size = match.group(1)
+                            elif match.lastindex == 2:  # 鍖归厤浜嗘渶鍚庝竴绉嶆ā寮?                                size = match.group(1)
                                 disk_type = match.group(2).upper()
                                 server_info["storage"] = f"{size} {disk_type}"
                             
-                            add_log("INFO", f"从文本中提取存储: {server_info['storage']} 给 {plan_code}")
+                            add_log("INFO", f"浠庢枃鏈腑鎻愬彇瀛樺偍: {server_info['storage']} 缁?{plan_code}")
                             break
             except Exception as e:
-                add_log("WARNING", f"解析 {plan_code} 服务器名称时出错: {str(e)}")
-                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
+                add_log("WARNING", f"瑙ｆ瀽 {plan_code} 鏈嶅姟鍣ㄥ悕绉版椂鍑洪敊: {str(e)}")
+                add_log("WARNING", f"閿欒璇︽儏: {traceback.format_exc()}")
             
-            # 解析方法 3: 尝试从产品配置中提取信息
+            # 瑙ｆ瀽鏂规硶 3: 灏濊瘯浠庝骇鍝侀厤缃腑鎻愬彇淇℃伅
             try:
-                if plan.get("product") and isinstance(plan.get("product"), dict) and plan.get("product").get("configurations"):
+                if plan.get("product") and plan.get("product").get("configurations"):
                     configs = plan.get("product").get("configurations")
-                    if not isinstance(configs, list):
-                        add_log("WARNING", f"产品配置不是列表类型: {configs}")
-                        configs = []
-                        
                     for config in configs:
-                        # 添加类型检查，确保config是字典类型
-                        if not isinstance(config, dict):
-                            add_log("WARNING", f"产品配置项不是字典类型: {config}")
-                            continue
-                            
                         config_name = config.get("name", "").lower()
                         value = config.get("value")
                         
                         if value:
                             if any(cpu_term in config_name for cpu_term in ["cpu", "processor"]):
                                 server_info["cpu"] = value
-                                add_log("INFO", f"从产品配置提取CPU: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠庝骇鍝侀厤缃彁鍙朇PU: {value} 缁?{plan_code}")
                             elif any(mem_term in config_name for mem_term in ["memory", "ram"]):
                                 server_info["memory"] = value
-                                add_log("INFO", f"从产品配置提取内存: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠庝骇鍝侀厤缃彁鍙栧唴瀛? {value} 缁?{plan_code}")
                             elif any(storage_term in config_name for storage_term in ["storage", "disk", "hdd", "ssd"]):
                                 server_info["storage"] = value
-                                add_log("INFO", f"从产品配置提取存储: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠庝骇鍝侀厤缃彁鍙栧瓨鍌? {value} 缁?{plan_code}")
                             elif "bandwidth" in config_name:
                                 server_info["bandwidth"] = value
-                                add_log("INFO", f"从产品配置提取带宽: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠庝骇鍝侀厤缃彁鍙栧甫瀹? {value} 缁?{plan_code}")
             except Exception as e:
-                add_log("WARNING", f"解析 {plan_code} 产品配置时出错: {str(e)}")
-                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
+                add_log("WARNING", f"瑙ｆ瀽 {plan_code} 浜у搧閰嶇疆鏃跺嚭閿? {str(e)}")
             
-            # 解析方法 4: 尝试从description解析信息
+            # 瑙ｆ瀽鏂规硶 4: 灏濊瘯浠巇escription瑙ｆ瀽淇℃伅
             try:
                 description = plan.get("description", "")
                 if description:
@@ -1070,143 +946,72 @@ def load_server_list():
                     for part in parts:
                         part = part.strip().lower()
                         
-                        # 检查每个部分是否包含硬件信息
-                        if server_info["cpu"] == "N/A" and any(cpu_term in part for cpu_term in ["cpu", "core", "i7", "i9", "xeon", "epyc", "ryzen"]):
+                        # 妫€鏌ユ瘡涓儴鍒嗘槸鍚﹀寘鍚‖浠朵俊鎭?                        if server_info["cpu"] == "N/A" and any(cpu_term in part for cpu_term in ["cpu", "core", "i7", "i9", "xeon", "epyc", "ryzen"]):
                             server_info["cpu"] = part
-                            add_log("INFO", f"从描述提取CPU: {part} 给 {plan_code}")
+                            add_log("INFO", f"浠庢弿杩版彁鍙朇PU: {part} 缁?{plan_code}")
                             
                         if server_info["memory"] == "N/A" and any(mem_term in part for mem_term in ["ram", "gb", "memory"]):
                             server_info["memory"] = part
-                            add_log("INFO", f"从描述提取内存: {part} 给 {plan_code}")
+                            add_log("INFO", f"浠庢弿杩版彁鍙栧唴瀛? {part} 缁?{plan_code}")
                             
                         if server_info["storage"] == "N/A" and any(storage_term in part for storage_term in ["hdd", "ssd", "nvme", "storage", "disk"]):
                             server_info["storage"] = part
-                            add_log("INFO", f"从描述提取存储: {part} 给 {plan_code}")
+                            add_log("INFO", f"浠庢弿杩版彁鍙栧瓨鍌? {part} 缁?{plan_code}")
                             
                         if server_info["bandwidth"] == "N/A" and "bandwidth" in part:
                             server_info["bandwidth"] = part
-                            add_log("INFO", f"从描述提取带宽: {part} 给 {plan_code}")
+                            add_log("INFO", f"浠庢弿杩版彁鍙栧甫瀹? {part} 缁?{plan_code}")
             except Exception as e:
-                add_log("WARNING", f"解析 {plan_code} 描述时出错: {str(e)}")
+                add_log("WARNING", f"瑙ｆ瀽 {plan_code} 鎻忚堪鏃跺嚭閿? {str(e)}")
             
-            # 解析方法 5: 从pricing获取信息
+            # 瑙ｆ瀽鏂规硶 5: 浠巔ricing鑾峰彇淇℃伅
             try:
-                if plan.get("pricing") and isinstance(plan.get("pricing"), dict) and plan.get("pricing").get("configurations"):
+                if plan.get("pricing") and plan.get("pricing").get("configurations"):
                     pricing_configs = plan.get("pricing").get("configurations")
-                    if not isinstance(pricing_configs, list):
-                        add_log("WARNING", f"价格配置不是列表类型: {pricing_configs}")
-                        pricing_configs = []
-                        
                     for price_config in pricing_configs:
-                        # 添加类型检查，确保price_config是字典类型
-                        if not isinstance(price_config, dict):
-                            add_log("WARNING", f"价格配置项不是字典类型: {price_config}")
-                            continue
-                            
                         config_name = price_config.get("name", "").lower()
                         value = price_config.get("value")
                         
                         if value:
                             if "processor" in config_name and server_info["cpu"] == "N/A":
                                 server_info["cpu"] = value
-                                add_log("INFO", f"从pricing配置提取CPU: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠巔ricing閰嶇疆鎻愬彇CPU: {value} 缁?{plan_code}")
                             elif "memory" in config_name and server_info["memory"] == "N/A":
                                 server_info["memory"] = value
-                                add_log("INFO", f"从pricing配置提取内存: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠巔ricing閰嶇疆鎻愬彇鍐呭瓨: {value} 缁?{plan_code}")
                             elif "storage" in config_name and server_info["storage"] == "N/A":
                                 server_info["storage"] = value
-                                add_log("INFO", f"从pricing配置提取存储: {value} 给 {plan_code}")
+                                add_log("INFO", f"浠巔ricing閰嶇疆鎻愬彇瀛樺偍: {value} 缁?{plan_code}")
             except Exception as e:
-                add_log("WARNING", f"解析 {plan_code} pricing配置时出错: {str(e)}")
-                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
+                add_log("WARNING", f"瑙ｆ瀽 {plan_code} pricing閰嶇疆鏃跺嚭閿? {str(e)}")
             
-            # 清理提取的数据以确保格式一致
-            # 对于CPU，添加一些基本信息如果只有核心数
+            # 娓呯悊鎻愬彇鐨勬暟鎹互纭繚鏍煎紡涓€鑷?            # 瀵逛簬CPU锛屾坊鍔犱竴浜涘熀鏈俊鎭鏋滃彧鏈夋牳蹇冩暟
             if server_info["cpu"] != "N/A" and server_info["cpu"].isdigit():
-                server_info["cpu"] = f"{server_info['cpu']} 核心"
+                server_info["cpu"] = f"{server_info['cpu']} 鏍稿績"
             
-            # 更新服务器信息中的配置选项
+            # 鏇存柊鏈嶅姟鍣ㄤ俊鎭腑鐨勯厤缃€夐」
             server_info["defaultOptions"] = default_options
             server_info["availableOptions"] = available_options
             
             plans.append(server_info)
         
-        # 为所有服务器记录日志
-        add_log("INFO", f"成功加载 {len(plans)} 台服务器信息")
+        # 涓烘墍鏈夋湇鍔″櫒璁板綍鏃ュ織
+        add_log("INFO", f"鎴愬姛鍔犺浇 {len(plans)} 鍙版湇鍔″櫒淇℃伅")
         
-        # 记录缺失信息的服务器
+        # 璁板綍缂哄け淇℃伅鐨勬湇鍔″櫒
         missing_info_servers = [
             plan["planCode"] for plan in plans 
             if plan["cpu"] == "N/A" or plan["memory"] == "N/A" or plan["storage"] == "N/A"
         ]
         
         if missing_info_servers:
-            add_log("WARNING", f"以下服务器缺少硬件信息: {', '.join(missing_info_servers)}")
+            add_log("WARNING", f"浠ヤ笅鏈嶅姟鍣ㄧ己灏戠‖浠朵俊鎭? {', '.join(missing_info_servers)}")
         
         return plans
     except Exception as e:
-        add_log("ERROR", f"加载服务器列表失败: {str(e)}")
-        add_log("ERROR", f"错误详情: {traceback.format_exc()}")
+        add_log("ERROR", f"鍔犺浇鏈嶅姟鍣ㄥ垪琛ㄥけ璐? {str(e)}")
+        add_log("ERROR", f"閿欒璇︽儏: {traceback.format_exc()}")
         return []
-
-# 保存API原始响应数据，用于分析和调试
-def save_raw_api_response(client, zone):
-    try:
-        add_log("INFO", f"正在从OVH API获取服务器原始数据...")
-        raw_response = client.get(f'/order/catalog/public/eco?ovhSubsidiary={zone}')
-        
-        # 保存完整原始响应
-        with open("ovh_api_raw_response.json", "w") as f:
-            json.dump(raw_response, f, indent=2)
-        add_log("INFO", f"已保存OVH API原始数据到ovh_api_raw_response.json")
-        
-        # 提取服务器计划，单独保存
-        if "plans" in raw_response:
-            server_plans = raw_response["plans"]
-            
-            # 保存所有计划的基本信息
-            plans_summary = []
-            for plan in server_plans:
-                plan_code = plan.get("planCode", "unknown")
-                plans_summary.append({
-                    "planCode": plan_code,
-                    "name": plan.get("invoiceName", ""),
-                    "description": plan.get("description", ""),
-                    "catalogName": plan.get("catalogName", ""),
-                    "family": plan.get("family", "")
-                })
-            
-            with open("server_plans_summary.json", "w") as f:
-                json.dump(plans_summary, f, indent=2)
-            add_log("INFO", f"已保存{len(plans_summary)}个服务器计划的摘要信息")
-            
-            # 单独保存特定系列的服务器详情
-            special_series = {
-                "sysle": [],
-                "sk": [],
-                "rise": [],
-                "game": []
-            }
-            
-            for plan in server_plans:
-                plan_code = plan.get("planCode", "unknown")
-                for series in special_series:
-                    if series in plan_code.lower():
-                        special_series[series].append(plan)
-                        break
-            
-            # 保存特殊系列数据
-            for series, plans_data in special_series.items():
-                if plans_data:
-                    with open(f"{series}_series_servers.json", "w") as f:
-                        json.dump(plans_data, f, indent=2)
-                    add_log("INFO", f"已保存{len(plans_data)}个{series.upper()}系列服务器详情")
-        
-        return True
-    except Exception as e:
-        add_log("ERROR", f"保存OVH API原始数据失败: {str(e)}")
-        add_log("ERROR", f"错误详情: {traceback.format_exc()}")
-        return False
 
 # Routes
 @app.route('/api/settings', methods=['GET'])
@@ -1339,32 +1144,31 @@ def get_servers():
     
     if show_api_servers and get_ovh_client():
         # Try to reload from API
-        add_log("INFO", "正在从OVH API重新加载服务器列表...")
+        add_log("INFO", "姝ｅ湪浠嶰VH API閲嶆柊鍔犺浇鏈嶅姟鍣ㄥ垪琛?..")
         api_servers = load_server_list()
         if api_servers:
             global server_plans
             server_plans = api_servers
             save_data()
             update_stats()
-            add_log("INFO", f"从OVH API加载了 {len(server_plans)} 台服务器")
+            add_log("INFO", f"浠嶰VH API鍔犺浇浜?{len(server_plans)} 鍙版湇鍔″櫒")
             
-            # 记录硬件信息统计
+            # 璁板綍纭欢淇℃伅缁熻
             cpu_count = sum(1 for s in server_plans if s["cpu"] != "N/A")
             memory_count = sum(1 for s in server_plans if s["memory"] != "N/A")
             storage_count = sum(1 for s in server_plans if s["storage"] != "N/A")
             bandwidth_count = sum(1 for s in server_plans if s["bandwidth"] != "N/A")
             
-            add_log("INFO", f"服务器硬件信息统计: CPU={cpu_count}/{len(server_plans)}, 内存={memory_count}/{len(server_plans)}, "
-                   f"存储={storage_count}/{len(server_plans)}, 带宽={bandwidth_count}/{len(server_plans)}")
+            add_log("INFO", f"鏈嶅姟鍣ㄧ‖浠朵俊鎭粺璁? CPU={cpu_count}/{len(server_plans)}, 鍐呭瓨={memory_count}/{len(server_plans)}, "
+                   f"瀛樺偍={storage_count}/{len(server_plans)}, 甯﹀={bandwidth_count}/{len(server_plans)}")
             
-            # 记录几个示例服务器的详细信息，帮助排查
-            if len(server_plans) > 0:
+            # 璁板綍鍑犱釜绀轰緥鏈嶅姟鍣ㄧ殑璇︾粏淇℃伅锛屽府鍔╂帓鏌?            if len(server_plans) > 0:
                 sample_server = server_plans[0]
-                add_log("INFO", f"示例服务器信息: {json.dumps(sample_server, indent=2)}")
+                add_log("INFO", f"绀轰緥鏈嶅姟鍣ㄤ俊鎭? {json.dumps(sample_server, indent=2)}")
         else:
-            add_log("WARNING", "从OVH API加载服务器列表失败")
+            add_log("WARNING", "浠嶰VH API鍔犺浇鏈嶅姟鍣ㄥ垪琛ㄥけ璐?)
     
-    # 返回包装的数据结构，以便前端可以正确处理
+    # 杩斿洖鍖呰鐨勬暟鎹粨鏋勶紝浠ヤ究鍓嶇鍙互姝ｇ‘澶勭悊
     response = {"servers": server_plans}
     return jsonify(response)
 
@@ -1381,40 +1185,38 @@ def get_stats():
     update_stats()
     return jsonify(stats)
 
-# 确保所有必要的文件都存在
-def ensure_files_exist():
-    # 检查并创建日志文件
+# 纭繚鎵€鏈夊繀瑕佺殑鏂囦欢閮藉瓨鍦?def ensure_files_exist():
+    # 妫€鏌ュ苟鍒涘缓鏃ュ織鏂囦欢
     if not os.path.exists(LOGS_FILE):
         with open(LOGS_FILE, 'w') as f:
             f.write('[]')
-        print(f"已创建空的 {LOGS_FILE} 文件")
+        print(f"宸插垱寤虹┖鐨?{LOGS_FILE} 鏂囦欢")
     
-    # 检查并创建队列文件
+    # 妫€鏌ュ苟鍒涘缓闃熷垪鏂囦欢
     if not os.path.exists(QUEUE_FILE):
         with open(QUEUE_FILE, 'w') as f:
             f.write('[]')
-        print(f"已创建空的 {QUEUE_FILE} 文件")
+        print(f"宸插垱寤虹┖鐨?{QUEUE_FILE} 鏂囦欢")
     
-    # 检查并创建历史记录文件
+    # 妫€鏌ュ苟鍒涘缓鍘嗗彶璁板綍鏂囦欢
     if not os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, 'w') as f:
             f.write('[]')
-        print(f"已创建空的 {HISTORY_FILE} 文件")
+        print(f"宸插垱寤虹┖鐨?{HISTORY_FILE} 鏂囦欢")
     
-    # 检查并创建服务器信息文件
-    if not os.path.exists(SERVERS_FILE):
+    # 妫€鏌ュ苟鍒涘缓鏈嶅姟鍣ㄤ俊鎭枃浠?    if not os.path.exists(SERVERS_FILE):
         with open(SERVERS_FILE, 'w') as f:
             f.write('[]')
-        print(f"已创建空的 {SERVERS_FILE} 文件")
+        print(f"宸插垱寤虹┖鐨?{SERVERS_FILE} 鏂囦欢")
     
-    # 检查并创建配置文件
+    # 妫€鏌ュ苟鍒涘缓閰嶇疆鏂囦欢
     if not os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, 'w') as f:
             json.dump(config, f)
-        print(f"已创建默认 {CONFIG_FILE} 文件")
+        print(f"宸插垱寤洪粯璁?{CONFIG_FILE} 鏂囦欢")
 
 if __name__ == '__main__':
-    # 确保所有文件都存在
+    # 纭繚鎵€鏈夋枃浠堕兘瀛樺湪
     ensure_files_exist()
     
     # Load data first

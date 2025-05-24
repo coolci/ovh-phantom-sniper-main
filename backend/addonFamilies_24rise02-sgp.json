@@ -1,0 +1,91 @@
+[
+  {
+    "name": "bandwidth",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "traffic-unlimited-1000-24rise-apac",
+      "traffic-unlimited-2000-24rise-apac",
+      "traffic-25tb-1000-24rise-apac",
+      "traffic-25tb-2000-24rise-apac"
+    ],
+    "default": "traffic-25tb-1000-24rise-apac"
+  },
+  {
+    "name": "storage",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "softraid-2x960nvme-24rise",
+      "softraid-2x1920nvme-24rise",
+      "hybridsoftraid-2x6000sa-2x512nvme-24rise",
+      "softraid-2x4000sa-24rise",
+      "softraid-2x512nvme-24rise"
+    ],
+    "default": "softraid-2x512nvme-24rise"
+  },
+  {
+    "name": "vrack",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "vrack-bandwidth-1000-upto-2000-24rise",
+      "vrack-bandwidth-2000-upto-4000-24rise"
+    ],
+    "default": "vrack-bandwidth-1000-upto-2000-24rise"
+  },
+  {
+    "name": "application-license",
+    "exclusive": false,
+    "mandatory": false,
+    "addons": [
+      "sql-server-2017-license-standard-edition-8-cores",
+      "sql-server-2017-license-web-edition-8-cores",
+      "sql-server-2019-license-web-edition-8-cores",
+      "sql-server-2022-license-web-edition-8-cores",
+      "sql-server-2019-license-standard-edition-8-cores",
+      "sql-server-2022-license-standard-edition-8-cores",
+      "plesk-webpro",
+      "cpanel-license-premier-metal-100-accounts",
+      "cpanel-license-premier-metal-150-accounts",
+      "cpanel-license-premier-metal-200-accounts",
+      "cpanel-license-premier-metal-250-accounts",
+      "cpanel-license-premier-metal-300-accounts",
+      "cpanel-license-premier-metal-400-accounts",
+      "cpanel-license-premier-metal-500-accounts",
+      "cpanel-license-premier-metal-600-accounts",
+      "cpanel-license-premier-metal-700-accounts",
+      "cpanel-license-premier-metal-800-accounts",
+      "cpanel-license-premier-metal-900-accounts",
+      "cpanel-license-premier-metal-1000-accounts",
+      "plesk-webhost",
+      "plesk-webadmin"
+    ],
+    "default": null
+  },
+  {
+    "name": "memory",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "ram-32g-ecc-3200-24rise",
+      "ram-64g-ecc-3200-24rise",
+      "ram-128g-ecc-2933-24rise"
+    ],
+    "default": "ram-32g-ecc-3200-24rise"
+  },
+  {
+    "name": "distribution-license",
+    "exclusive": false,
+    "mandatory": false,
+    "addons": [
+      "windows-server-2019-license-standard-edition-8-cores",
+      "windows-server-2019-license-datacenter-edition-8-cores",
+      "windows-server-2022-license-standard-edition-8-cores",
+      "windows-server-2022-license-datacenter-edition-8-cores",
+      "windows-server-2025-license-standard-edition-8-cores",
+      "windows-server-2025-license-datacenter-edition-8-cores"
+    ],
+    "default": null
+  }
+]

@@ -1,0 +1,95 @@
+[
+  {
+    "name": "bandwidth",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "bandwidth-2000-24rise",
+      "bandwidth-1000-24rise"
+    ],
+    "default": "bandwidth-1000-24rise"
+  },
+  {
+    "name": "memory",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "ram-32g-ecc-2933-24risestor",
+      "ram-64g-ecc-2933-24risestor",
+      "ram-128g-ecc-2666-24risestor"
+    ],
+    "default": "ram-32g-ecc-2933-24risestor"
+  },
+  {
+    "name": "system-storage",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "softraid-2x480ssd-system-24risestor"
+    ],
+    "default": "softraid-2x480ssd-system-24risestor"
+  },
+  {
+    "name": "storage",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "softraid-4x14000sas-24risestor",
+      "softraid-6x14000sas-24risestor"
+    ],
+    "default": "softraid-4x14000sas-24risestor"
+  },
+  {
+    "name": "vrack",
+    "exclusive": true,
+    "mandatory": true,
+    "addons": [
+      "vrack-bandwidth-1000-upto-2000-24rise",
+      "vrack-bandwidth-2000-upto-4000-24rise"
+    ],
+    "default": "vrack-bandwidth-1000-upto-2000-24rise"
+  },
+  {
+    "name": "application-license",
+    "exclusive": false,
+    "mandatory": false,
+    "addons": [
+      "sql-server-2017-license-standard-edition-8-cores",
+      "sql-server-2017-license-web-edition-8-cores",
+      "sql-server-2019-license-web-edition-8-cores",
+      "sql-server-2022-license-web-edition-8-cores",
+      "sql-server-2019-license-standard-edition-8-cores",
+      "sql-server-2022-license-standard-edition-8-cores",
+      "plesk-webpro",
+      "cpanel-license-premier-metal-100-accounts",
+      "cpanel-license-premier-metal-150-accounts",
+      "cpanel-license-premier-metal-200-accounts",
+      "cpanel-license-premier-metal-250-accounts",
+      "cpanel-license-premier-metal-300-accounts",
+      "cpanel-license-premier-metal-400-accounts",
+      "cpanel-license-premier-metal-500-accounts",
+      "cpanel-license-premier-metal-600-accounts",
+      "cpanel-license-premier-metal-700-accounts",
+      "cpanel-license-premier-metal-800-accounts",
+      "cpanel-license-premier-metal-900-accounts",
+      "cpanel-license-premier-metal-1000-accounts",
+      "plesk-webhost",
+      "plesk-webadmin"
+    ],
+    "default": null
+  },
+  {
+    "name": "distribution-license",
+    "exclusive": false,
+    "mandatory": false,
+    "addons": [
+      "windows-server-2019-license-standard-edition-8-cores",
+      "windows-server-2019-license-datacenter-edition-8-cores",
+      "windows-server-2022-license-standard-edition-8-cores",
+      "windows-server-2022-license-datacenter-edition-8-cores",
+      "windows-server-2025-license-standard-edition-8-cores",
+      "windows-server-2025-license-datacenter-edition-8-cores"
+    ],
+    "default": null
+  }
+]

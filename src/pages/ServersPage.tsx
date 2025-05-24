@@ -643,7 +643,6 @@ const ServersPage = () => {
       return true;
     }) : [];
     
-    // 过滤默认选项，只保留硬件相关的
     const filteredDefaultOptions = server.defaultOptions ? server.defaultOptions.filter(option => {
       const optionValue = option.value.toLowerCase();
       const optionLabel = option.label.toLowerCase();
@@ -685,6 +684,14 @@ const ServersPage = () => {
       return null;
     }
     
+    // 判断可选配置和默认配置内容是否完全一致
+    const defaultSet = new Set(filteredDefaultOptions.map(opt => opt.value));
+    const optionSet = new Set(filteredOptions.map(opt => opt.value));
+    let optionsIdentical = false;
+    if (defaultSet.size === optionSet.size && [...defaultSet].every(v => optionSet.has(v))) {
+      optionsIdentical = true;
+    }
+
     // 尝试根据选项分类将选项分组
     const optionGroups: Record<string, ServerOption[]> = {
       "CPU/处理器": [],
@@ -749,13 +756,12 @@ const ServersPage = () => {
             </div>
           </div>
         )}
-        
-        {hasGroupedOptions && (
+        {/* 只有当可选配置和默认配置不一致时才显示可选配置区域 */}
+        {!optionsIdentical && hasGroupedOptions && (
           <div className="mt-2">
             <div className="font-medium text-cyber-blue mb-1">可选配置</div>
             {Object.entries(optionGroups).map(([groupName, options]) => {
               if (options.length === 0) return null;
-              
               return (
                 <div key={groupName} className="mb-3">
                   <div className="font-medium text-cyber-blue mb-1">{groupName}</div>

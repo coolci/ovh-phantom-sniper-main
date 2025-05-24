@@ -442,8 +442,15 @@ def load_server_list():
         return []
     
     try:
-        # 保存完整的API原始响应
-        save_raw_api_response(client, config["zone"])
+        # 记录完整的API响应用于调试
+        try:
+            add_log("INFO", f"正在从OVH API获取服务器数据...")
+            raw_response = client.get(f'/order/catalog/public/eco?ovhSubsidiary={config["zone"]}')
+            with open("ovh_api_raw_response.json", "w") as f:
+                json.dump(raw_response, f, indent=2)
+            add_log("INFO", f"已保存OVH API原始数据到ovh_api_raw_response.json")
+        except Exception as e:
+            add_log("ERROR", f"保存OVH API原始数据失败: {str(e)}")
         
         # Get server models
         catalog = client.get(f'/order/catalog/public/eco?ovhSubsidiary={config["zone"]}')
@@ -532,55 +539,6 @@ def load_server_list():
                 "availableOptions": available_options
             }
             
-            # 处理特定系列服务器的特殊逻辑
-            special_server_processed = False
-            try:
-                # 检查是否为SYSLE系列服务器
-                if "sysle" in plan_code.lower():
-                    add_log("INFO", f"检测到SYSLE系列服务器: {plan_code}")
-                    
-                    # 尝试从plan_code提取信息
-                    # 通常SYSLE的格式为"25sysle021"，可能包含CPU型号或配置信息
-                    server_info["cpu"] = "SYSLE系列CPU"
-                    
-                    # 尝试寻找更具体的信息
-                    # 保存原始数据以便分析
-                    try:
-                        with open(f"sysle_server_{plan_code}.json", "w") as f:
-                            json.dump(plan, f, indent=2)
-                        add_log("INFO", f"已保存SYSLE服务器{plan_code}的原始数据")
-                    except Exception as e:
-                        add_log("WARNING", f"保存SYSLE服务器数据时出错: {str(e)}")
-                    
-                    special_server_processed = True
-                
-                # 检查是否为SK系列服务器
-                elif "sk" in plan_code.lower():
-                    add_log("INFO", f"检测到SK系列服务器: {plan_code}")
-                    
-                    # SK系列可能有特殊格式，如"24sk30-syd"
-                    server_info["cpu"] = "SK系列专用CPU"
-                    
-                    # 尝试寻找更具体的信息
-                    # 保存原始数据以便分析
-                    try:
-                        with open(f"sk_server_{plan_code}.json", "w") as f:
-                            json.dump(plan, f, indent=2)
-                        add_log("INFO", f"已保存SK服务器{plan_code}的原始数据")
-                    except Exception as e:
-                        add_log("WARNING", f"保存SK服务器数据时出错: {str(e)}")
-                    
-                    special_server_processed = True
-                
-                # 添加更多特殊系列处理...
-            except Exception as e:
-                add_log("WARNING", f"处理特殊系列服务器时出错: {str(e)}")
-                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
-            
-            # 如果是特殊处理的服务器，记录日志
-            if special_server_processed:
-                add_log("INFO", f"已对服务器 {plan_code} 应用特殊处理逻辑")
-            
             # 获取服务器名称和描述，确保它们不为空
             if not server_info["name"] and plan.get("displayName"):
                 server_info["name"] = plan.get("displayName")
@@ -644,21 +602,10 @@ def load_server_list():
                 printed_example = False
                 try:
                     if plan.get("addonFamilies") and isinstance(plan.get("addonFamilies"), list):
-                        # 尝试保存完整的addonFamilies数据用于更深入分析
-                        try:
-                            with open(f"addonFamilies_{plan_code}.json", "w") as f:
-                                json.dump(plan.get("addonFamilies"), f, indent=2)
-                            add_log("INFO", f"已保存服务器 {plan_code} 的addonFamilies数据")
-                        except Exception as e:
-                            add_log("WARNING", f"保存addonFamilies数据时出错: {str(e)}")
-                        
                         # 打印一个完整的addonFamilies示例用于调试
                         if len(plan.get("addonFamilies")) > 0 and not printed_example:
-                            try:
-                                add_log("INFO", f"addonFamilies示例: {json.dumps(plan.get('addonFamilies')[0], indent=2)}")
-                                printed_example = True
-                            except Exception as e:
-                                add_log("WARNING", f"无法序列化addonFamilies示例: {str(e)}")
+                            add_log("INFO", f"addonFamilies示例: {json.dumps(plan.get('addonFamilies')[0], indent=2)}")
+                            printed_example = True
                         
                         # 尝试保存所有带宽相关的选项用于调试
                         try:
@@ -684,10 +631,6 @@ def load_server_list():
                         
                         # 提取addonFamilies信息
                         for family in plan.get("addonFamilies"):
-                            if not isinstance(family, dict):
-                                add_log("WARNING", f"addonFamily不是字典类型: {family}")
-                                continue
-                                
                             family_name = family.get("name", "").lower()  # 注意: 在API响应中是'name'而不是'family'
                             default_addon = family.get("default")  # 获取默认选项
                             
@@ -750,27 +693,6 @@ def load_server_list():
                                     if default_value:
                                         server_info["cpu"] = default_value
                                         add_log("INFO", f"从addonFamilies默认选项提取CPU: {default_value} 给 {plan_code}")
-                                        
-                                        # 尝试从CPU选项中提取更详细信息
-                                        try:
-                                            # 记录CPU选项的完整列表，方便调试
-                                            if family.get("addons") and isinstance(family.get("addons"), list):
-                                                cpu_options = []
-                                                for cpu_addon in family.get("addons"):
-                                                    if isinstance(cpu_addon, str):
-                                                        cpu_options.append(cpu_addon)
-                                                
-                                                if cpu_options:
-                                                    add_log("INFO", f"服务器 {plan_code} 的CPU选项: {', '.join(cpu_options)}")
-                                                    
-                                                    # 保存到文件以便更详细分析
-                                                    try:
-                                                        with open(f"cpu_options_{plan_code}.json", "w") as f:
-                                                            json.dump({"options": cpu_options, "default": default_value}, f, indent=2)
-                                                    except Exception as e:
-                                                        add_log("WARNING", f"保存CPU选项时出错: {str(e)}")
-                                        except Exception as e:
-                                            add_log("WARNING", f"解析CPU选项时出错: {str(e)}")
                                 
                                 # 内存信息
                                 elif ("memory" in family_name or "ram" in family_name) and server_info["memory"] == "N/A":
@@ -890,11 +812,6 @@ def load_server_list():
             try:
                 if plan.get("details") and plan.get("details").get("properties"):
                     for prop in plan.get("details").get("properties"):
-                        # 添加类型检查，确保prop是字典类型
-                        if not isinstance(prop, dict):
-                            add_log("WARNING", f"属性项不是字典类型: {prop}")
-                            continue
-                            
                         prop_name = prop.get("name", "").lower()
                         value = prop.get("value", "N/A")
                         
@@ -1030,18 +947,9 @@ def load_server_list():
             
             # 解析方法 3: 尝试从产品配置中提取信息
             try:
-                if plan.get("product") and isinstance(plan.get("product"), dict) and plan.get("product").get("configurations"):
+                if plan.get("product") and plan.get("product").get("configurations"):
                     configs = plan.get("product").get("configurations")
-                    if not isinstance(configs, list):
-                        add_log("WARNING", f"产品配置不是列表类型: {configs}")
-                        configs = []
-                        
                     for config in configs:
-                        # 添加类型检查，确保config是字典类型
-                        if not isinstance(config, dict):
-                            add_log("WARNING", f"产品配置项不是字典类型: {config}")
-                            continue
-                            
                         config_name = config.get("name", "").lower()
                         value = config.get("value")
                         
@@ -1060,7 +968,6 @@ def load_server_list():
                                 add_log("INFO", f"从产品配置提取带宽: {value} 给 {plan_code}")
             except Exception as e:
                 add_log("WARNING", f"解析 {plan_code} 产品配置时出错: {str(e)}")
-                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
             
             # 解析方法 4: 尝试从description解析信息
             try:
@@ -1091,18 +998,9 @@ def load_server_list():
             
             # 解析方法 5: 从pricing获取信息
             try:
-                if plan.get("pricing") and isinstance(plan.get("pricing"), dict) and plan.get("pricing").get("configurations"):
+                if plan.get("pricing") and plan.get("pricing").get("configurations"):
                     pricing_configs = plan.get("pricing").get("configurations")
-                    if not isinstance(pricing_configs, list):
-                        add_log("WARNING", f"价格配置不是列表类型: {pricing_configs}")
-                        pricing_configs = []
-                        
                     for price_config in pricing_configs:
-                        # 添加类型检查，确保price_config是字典类型
-                        if not isinstance(price_config, dict):
-                            add_log("WARNING", f"价格配置项不是字典类型: {price_config}")
-                            continue
-                            
                         config_name = price_config.get("name", "").lower()
                         value = price_config.get("value")
                         
@@ -1118,7 +1016,6 @@ def load_server_list():
                                 add_log("INFO", f"从pricing配置提取存储: {value} 给 {plan_code}")
             except Exception as e:
                 add_log("WARNING", f"解析 {plan_code} pricing配置时出错: {str(e)}")
-                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
             
             # 清理提取的数据以确保格式一致
             # 对于CPU，添加一些基本信息如果只有核心数
@@ -1148,65 +1045,6 @@ def load_server_list():
         add_log("ERROR", f"加载服务器列表失败: {str(e)}")
         add_log("ERROR", f"错误详情: {traceback.format_exc()}")
         return []
-
-# 保存API原始响应数据，用于分析和调试
-def save_raw_api_response(client, zone):
-    try:
-        add_log("INFO", f"正在从OVH API获取服务器原始数据...")
-        raw_response = client.get(f'/order/catalog/public/eco?ovhSubsidiary={zone}')
-        
-        # 保存完整原始响应
-        with open("ovh_api_raw_response.json", "w") as f:
-            json.dump(raw_response, f, indent=2)
-        add_log("INFO", f"已保存OVH API原始数据到ovh_api_raw_response.json")
-        
-        # 提取服务器计划，单独保存
-        if "plans" in raw_response:
-            server_plans = raw_response["plans"]
-            
-            # 保存所有计划的基本信息
-            plans_summary = []
-            for plan in server_plans:
-                plan_code = plan.get("planCode", "unknown")
-                plans_summary.append({
-                    "planCode": plan_code,
-                    "name": plan.get("invoiceName", ""),
-                    "description": plan.get("description", ""),
-                    "catalogName": plan.get("catalogName", ""),
-                    "family": plan.get("family", "")
-                })
-            
-            with open("server_plans_summary.json", "w") as f:
-                json.dump(plans_summary, f, indent=2)
-            add_log("INFO", f"已保存{len(plans_summary)}个服务器计划的摘要信息")
-            
-            # 单独保存特定系列的服务器详情
-            special_series = {
-                "sysle": [],
-                "sk": [],
-                "rise": [],
-                "game": []
-            }
-            
-            for plan in server_plans:
-                plan_code = plan.get("planCode", "unknown")
-                for series in special_series:
-                    if series in plan_code.lower():
-                        special_series[series].append(plan)
-                        break
-            
-            # 保存特殊系列数据
-            for series, plans_data in special_series.items():
-                if plans_data:
-                    with open(f"{series}_series_servers.json", "w") as f:
-                        json.dump(plans_data, f, indent=2)
-                    add_log("INFO", f"已保存{len(plans_data)}个{series.upper()}系列服务器详情")
-        
-        return True
-    except Exception as e:
-        add_log("ERROR", f"保存OVH API原始数据失败: {str(e)}")
-        add_log("ERROR", f"错误详情: {traceback.format_exc()}")
-        return False
 
 # Routes
 @app.route('/api/settings', methods=['GET'])
