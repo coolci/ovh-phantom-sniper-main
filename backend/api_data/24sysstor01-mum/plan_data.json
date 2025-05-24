@@ -1,0 +1,689 @@
+{
+  "planCode": "24sysstor01-mum",
+  "invoiceName": "SYS-STOR | AMD Ryzen 5 Pro 3600",
+  "addonFamilies": [
+    {
+      "name": "memory",
+      "exclusive": true,
+      "mandatory": true,
+      "addons": [
+        "ram-32g-ecc-2933-24sysstor"
+      ],
+      "default": "ram-32g-ecc-2933-24sysstor"
+    },
+    {
+      "name": "vrack",
+      "exclusive": true,
+      "mandatory": true,
+      "addons": [
+        "vrack-bandwidth-500-24sys",
+        "vrack-bandwidth-1000-24sys"
+      ],
+      "default": "vrack-bandwidth-500-24sys"
+    },
+    {
+      "name": "storage",
+      "exclusive": true,
+      "mandatory": true,
+      "addons": [
+        "softraid-4x6000sa-24sysstor",
+        "softraid-6x6000sa-24sysstor"
+      ],
+      "default": "softraid-4x6000sa-24sysstor"
+    },
+    {
+      "name": "system-storage",
+      "exclusive": true,
+      "mandatory": true,
+      "addons": [
+        "softraid-2x512nvme-system-24sysstor"
+      ],
+      "default": "softraid-2x512nvme-system-24sysstor"
+    },
+    {
+      "name": "application-license",
+      "exclusive": false,
+      "mandatory": false,
+      "addons": [
+        "plesk-webpro",
+        "sql-server-2017-license-web-edition-4-cores",
+        "sql-server-2019-license-standard-edition-4-cores",
+        "sql-server-2022-license-standard-edition-4-cores",
+        "sql-server-2017-license-standard-edition-4-cores",
+        "cpanel-license-premier-metal-100-accounts",
+        "cpanel-license-premier-metal-150-accounts",
+        "cpanel-license-premier-metal-200-accounts",
+        "cpanel-license-premier-metal-250-accounts",
+        "cpanel-license-premier-metal-300-accounts",
+        "cpanel-license-premier-metal-400-accounts",
+        "cpanel-license-premier-metal-500-accounts",
+        "cpanel-license-premier-metal-600-accounts",
+        "cpanel-license-premier-metal-700-accounts",
+        "cpanel-license-premier-metal-800-accounts",
+        "cpanel-license-premier-metal-900-accounts",
+        "cpanel-license-premier-metal-1000-accounts",
+        "plesk-webhost",
+        "plesk-webadmin",
+        "sql-server-2019-license-web-edition-4-cores",
+        "sql-server-2022-license-web-edition-4-cores"
+      ],
+      "default": null
+    },
+    {
+      "name": "distribution-license",
+      "exclusive": false,
+      "mandatory": false,
+      "addons": [
+        "windows-server-2019-license-standard-edition-8-cores",
+        "windows-server-2019-license-datacenter-edition-8-cores",
+        "windows-server-2022-license-standard-edition-8-cores",
+        "windows-server-2022-license-datacenter-edition-8-cores"
+      ],
+      "default": null
+    },
+    {
+      "name": "bandwidth",
+      "exclusive": true,
+      "mandatory": true,
+      "addons": [
+        "traffic-10tb-500-24sys-apac",
+        "traffic-unlimited-500-24sys-apac"
+      ],
+      "default": "traffic-10tb-500-24sys-apac"
+    }
+  ],
+  "product": "24sysstor01",
+  "pricingType": "rental",
+  "consumptionConfiguration": null,
+  "pricings": [
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "default",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 0,
+      "description": "rental for 1 month",
+      "interval": 1,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "default",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [
+        {
+          "name": "SPECIALOFFER_0525_SYS45STOR_13M",
+          "description": "Special offer: 5% off on SYS-4, SYS-5 and SYS-STOR servers, for 1 and 3 months commitment. Offer valid until server cancellation.",
+          "type": "percentage",
+          "context": "standard",
+          "value": 5,
+          "discount": {
+            "value": 499950000,
+            "tax": 114988500
+          },
+          "total": {
+            "value": 9499050000,
+            "tax": 2184781500
+          },
+          "minimumDuration": 2,
+          "duration": null,
+          "quantity": null,
+          "globalQuantity": null,
+          "startDate": "2025-05-06T07:00:00+02:00",
+          "endDate": "2025-05-27T14:00:00+02:00",
+          "isGlobalQuantityLimited": false
+        }
+      ],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "degressivity12",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 12,
+      "description": "rental for 1 month",
+      "interval": 1,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "degressivity12",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [
+        {
+          "name": "SPECIALOFFER_0525_SYS45STOR_12M",
+          "description": "Special offer: 15% off on SYS-4, SYS-5 and SYS-STOR servers, for 12 months commitment. Offer valid until server cancellation.",
+          "type": "percentage",
+          "context": "standard",
+          "value": 15,
+          "discount": {
+            "value": 1499850000,
+            "tax": 344965500
+          },
+          "total": {
+            "value": 8499150000,
+            "tax": 1954804500
+          },
+          "minimumDuration": 2,
+          "duration": null,
+          "quantity": null,
+          "globalQuantity": null,
+          "startDate": "2025-05-06T07:00:00+02:00",
+          "endDate": "2025-05-27T14:00:00+02:00",
+          "isGlobalQuantityLimited": false
+        }
+      ],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P12M",
+        "type": "periodic"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "degressivity3",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 3,
+      "description": "rental for 1 month",
+      "interval": 1,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "degressivity3",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [
+        {
+          "name": "SPECIALOFFER_0525_SYS45STOR_13M",
+          "description": "Special offer: 5% off on SYS-4, SYS-5 and SYS-STOR servers, for 1 and 3 months commitment. Offer valid until server cancellation.",
+          "type": "percentage",
+          "context": "standard",
+          "value": 5,
+          "discount": {
+            "value": 499950000,
+            "tax": 114988500
+          },
+          "total": {
+            "value": 9499050000,
+            "tax": 2184781500
+          },
+          "minimumDuration": 2,
+          "duration": null,
+          "quantity": null,
+          "globalQuantity": null,
+          "startDate": "2025-05-06T07:00:00+02:00",
+          "endDate": "2025-05-27T14:00:00+02:00",
+          "isGlobalQuantityLimited": false
+        }
+      ],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P3M",
+        "type": "periodic"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "degressivity6",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 6,
+      "description": "rental for 1 month",
+      "interval": 1,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "degressivity6",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [
+        {
+          "name": "SPECIALOFFER_0525_SYS45STOR_6M",
+          "description": "Special offer: 10% off on SYS-4, SYS-5 and SYS-STOR servers, for 6 months commitment. Offer valid until server cancellation.",
+          "type": "percentage",
+          "context": "standard",
+          "value": 10,
+          "discount": {
+            "value": 999900000,
+            "tax": 229977000
+          },
+          "total": {
+            "value": 8999100000,
+            "tax": 2069793000
+          },
+          "minimumDuration": 2,
+          "duration": null,
+          "quantity": null,
+          "globalQuantity": null,
+          "startDate": "2025-05-06T07:00:00+02:00",
+          "endDate": "2025-05-27T14:00:00+02:00",
+          "isGlobalQuantityLimited": false
+        }
+      ],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P6M",
+        "type": "periodic"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "upfront12",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 12,
+      "description": "rental for 12 months",
+      "interval": 12,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 119988000000,
+      "tax": 27597240000,
+      "mode": "upfront12",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [
+        {
+          "name": "SPECIALOFFER_0525_SYS45STOR_12M",
+          "description": "Special offer: 15% off on SYS-4, SYS-5 and SYS-STOR servers, for 12 months commitment. Offer valid until server cancellation.",
+          "type": "percentage",
+          "context": "standard",
+          "value": 15,
+          "discount": {
+            "value": 17998200000,
+            "tax": 4139586000
+          },
+          "total": {
+            "value": 101989800000,
+            "tax": 23457654000
+          },
+          "minimumDuration": 2,
+          "duration": null,
+          "quantity": null,
+          "globalQuantity": null,
+          "startDate": "2025-05-06T07:00:00+02:00",
+          "endDate": "2025-05-27T14:00:00+02:00",
+          "isGlobalQuantityLimited": false
+        }
+      ],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P12M",
+        "type": "upfront"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "upfront3",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 3,
+      "description": "rental for 3 months",
+      "interval": 3,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 29997000000,
+      "tax": 6899310000,
+      "mode": "upfront3",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [
+        {
+          "name": "SPECIALOFFER_0525_SYS45STOR_13M",
+          "description": "Special offer: 5% off on SYS-4, SYS-5 and SYS-STOR servers, for 1 and 3 months commitment. Offer valid until server cancellation.",
+          "type": "percentage",
+          "context": "standard",
+          "value": 5,
+          "discount": {
+            "value": 1499850000,
+            "tax": 344965500
+          },
+          "total": {
+            "value": 28497150000,
+            "tax": 6554344500
+          },
+          "minimumDuration": 2,
+          "duration": null,
+          "quantity": null,
+          "globalQuantity": null,
+          "startDate": "2025-05-06T07:00:00+02:00",
+          "endDate": "2025-05-27T14:00:00+02:00",
+          "isGlobalQuantityLimited": false
+        }
+      ],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P3M",
+        "type": "upfront"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 9999000000,
+      "tax": 2299770000,
+      "mode": "upfront6",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 6,
+      "description": "rental for 6 months",
+      "interval": 6,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 59994000000,
+      "tax": 13798620000,
+      "mode": "upfront6",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [
+        {
+          "name": "SPECIALOFFER_0525_SYS45STOR_6M",
+          "description": "Special offer: 10% off on SYS-4, SYS-5 and SYS-STOR servers, for 6 months commitment. Offer valid until server cancellation.",
+          "type": "percentage",
+          "context": "standard",
+          "value": 10,
+          "discount": {
+            "value": 5999400000,
+            "tax": 1379862000
+          },
+          "total": {
+            "value": 53994600000,
+            "tax": 12418758000
+          },
+          "minimumDuration": 2,
+          "duration": null,
+          "quantity": null,
+          "globalQuantity": null,
+          "startDate": "2025-05-06T07:00:00+02:00",
+          "endDate": "2025-05-27T14:00:00+02:00",
+          "isGlobalQuantityLimited": false
+        }
+      ],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P6M",
+        "type": "upfront"
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "name": "dedicated_datacenter",
+      "isCustom": false,
+      "isMandatory": false,
+      "values": [
+        "ynm"
+      ]
+    },
+    {
+      "name": "dedicated_os",
+      "isCustom": false,
+      "isMandatory": true,
+      "values": [
+        "none_64.en"
+      ]
+    },
+    {
+      "name": "region",
+      "isCustom": false,
+      "isMandatory": true,
+      "values": [
+        "canada"
+      ]
+    }
+  ],
+  "family": null,
+  "blobs": {
+    "commercial": {
+      "features": [
+        {
+          "name": "baremetal-server-usecases",
+          "value": "email,dev-env,data-storage,archive-backup-recovery"
+        }
+      ]
+    },
+    "tags": [
+      "storage"
+    ]
+  }
+}

@@ -1,0 +1,515 @@
+{
+  "planCode": "24sk50",
+  "invoiceName": "KS-5 | Intel Xeon-E3 1270 v6",
+  "addonFamilies": [
+    {
+      "name": "storage",
+      "exclusive": true,
+      "mandatory": true,
+      "addons": [
+        "softraid-2x2000sa-24sk50",
+        "softraid-2x450nvme-24sk50"
+      ],
+      "default": "softraid-2x2000sa-24sk50"
+    },
+    {
+      "name": "memory",
+      "exclusive": true,
+      "mandatory": true,
+      "addons": [
+        "ram-32g-ecc-2400-24sk50",
+        "ram-64g-ecc-2400-24sk50"
+      ],
+      "default": "ram-32g-ecc-2400-24sk50"
+    },
+    {
+      "name": "bandwidth",
+      "exclusive": true,
+      "mandatory": true,
+      "addons": [
+        "bandwidth-300-24sk"
+      ],
+      "default": "bandwidth-300-24sk"
+    },
+    {
+      "name": "distribution-license",
+      "exclusive": false,
+      "mandatory": false,
+      "addons": [
+        "windows-server-2016-license-datacenter-edition-1-cpu-8-cores",
+        "windows-server-2016-license-standard-edition-1-cpu-8-cores",
+        "windows-server-2019-license-standard-edition-8-cores",
+        "windows-server-2019-license-datacenter-edition-8-cores",
+        "windows-server-2022-license-standard-edition-8-cores",
+        "windows-server-2022-license-datacenter-edition-8-cores"
+      ],
+      "default": null
+    },
+    {
+      "name": "application-license",
+      "exclusive": false,
+      "mandatory": false,
+      "addons": [
+        "plesk-webpro",
+        "sql-server-2017-license-web-edition-4-cores",
+        "sql-server-2019-license-standard-edition-4-cores",
+        "sql-server-2022-license-standard-edition-4-cores",
+        "sql-server-2017-license-standard-edition-4-cores",
+        "cpanel-license-premier-metal-100-accounts",
+        "cpanel-license-premier-metal-150-accounts",
+        "cpanel-license-premier-metal-200-accounts",
+        "cpanel-license-premier-metal-250-accounts",
+        "cpanel-license-premier-metal-300-accounts",
+        "cpanel-license-premier-metal-400-accounts",
+        "cpanel-license-premier-metal-500-accounts",
+        "cpanel-license-premier-metal-600-accounts",
+        "cpanel-license-premier-metal-700-accounts",
+        "cpanel-license-premier-metal-800-accounts",
+        "cpanel-license-premier-metal-900-accounts",
+        "cpanel-license-premier-metal-1000-accounts",
+        "plesk-webhost",
+        "plesk-webadmin",
+        "sql-server-2019-license-web-edition-4-cores",
+        "sql-server-2022-license-web-edition-4-cores"
+      ],
+      "default": null
+    }
+  ],
+  "product": "24sk50",
+  "pricingType": "rental",
+  "consumptionConfiguration": null,
+  "pricings": [
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "default",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 0,
+      "description": "rental for 1 month",
+      "interval": 1,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "default",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "degressivity12",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 12,
+      "description": "rental for 1 month",
+      "interval": 1,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "degressivity12",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P12M",
+        "type": "periodic"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "degressivity3",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 3,
+      "description": "rental for 1 month",
+      "interval": 1,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "degressivity3",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P3M",
+        "type": "periodic"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "degressivity6",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 6,
+      "description": "rental for 1 month",
+      "interval": 1,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "degressivity6",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P6M",
+        "type": "periodic"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "upfront12",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 12,
+      "description": "rental for 12 months",
+      "interval": 12,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 26388000000,
+      "tax": 6069240000,
+      "mode": "upfront12",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P12M",
+        "type": "upfront"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "upfront3",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 3,
+      "description": "rental for 3 months",
+      "interval": 3,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 6597000000,
+      "tax": 1517310000,
+      "mode": "upfront3",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P3M",
+        "type": "upfront"
+      }
+    },
+    {
+      "phase": 0,
+      "capacities": [
+        "installation"
+      ],
+      "commitment": 0,
+      "description": "rental (only applicable for 1 time)",
+      "interval": 0,
+      "intervalUnit": "none",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": 1
+      },
+      "price": 2199000000,
+      "tax": 505770000,
+      "mode": "upfront6",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": null
+    },
+    {
+      "phase": 1,
+      "capacities": [
+        "renew"
+      ],
+      "commitment": 6,
+      "description": "rental for 6 months",
+      "interval": 6,
+      "intervalUnit": "month",
+      "quantity": {
+        "min": 1,
+        "max": 10
+      },
+      "repeat": {
+        "min": 1,
+        "max": null
+      },
+      "price": 13194000000,
+      "tax": 3034620000,
+      "mode": "upfront6",
+      "strategy": "tiered",
+      "mustBeCompleted": false,
+      "type": "rental",
+      "promotions": [],
+      "engagementConfiguration": {
+        "defaultEndAction": "REACTIVATE_ENGAGEMENT",
+        "duration": "P6M",
+        "type": "upfront"
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "name": "dedicated_datacenter",
+      "isCustom": false,
+      "isMandatory": false,
+      "values": [
+        "gra",
+        "sbg",
+        "rbx",
+        "bhs",
+        "waw",
+        "fra",
+        "lon"
+      ]
+    },
+    {
+      "name": "dedicated_os",
+      "isCustom": false,
+      "isMandatory": true,
+      "values": [
+        "none_64.en"
+      ]
+    },
+    {
+      "name": "region",
+      "isCustom": false,
+      "isMandatory": true,
+      "values": [
+        "europe",
+        "canada"
+      ]
+    }
+  ],
+  "family": null,
+  "blobs": {
+    "commercial": {
+      "features": [
+        {
+          "name": "baremetal-server-usecases",
+          "value": "hosting"
+        }
+      ]
+    }
+  }
+}

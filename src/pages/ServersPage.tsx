@@ -104,6 +104,14 @@ const ServersPage = () => {
         }
       }
       
+      // 进一步校验服务器列表的有效性
+      if (!Array.isArray(serversList)) {
+        console.error("无效的服务器列表格式:", serversList);
+        toast.error("获取服务器列表失败: 数据格式错误");
+        setIsLoading(false);
+        return;
+      }
+      
       console.log("解析后的服务器列表:", serversList);
       console.log(`获取到 ${serversList.length} 台服务器`);
       
@@ -112,18 +120,21 @@ const ServersPage = () => {
         // 验证必要字段是否存在
         const formattedServer = {
           ...server,
+          planCode: server.planCode || "未知",
+          name: server.name || "未命名服务器",
+          description: server.description || "",
           cpu: server.cpu || "N/A",
           memory: server.memory || "N/A", 
           storage: server.storage || "N/A",
           bandwidth: server.bandwidth || "N/A",
           vrackBandwidth: server.vrackBandwidth || "N/A",
-          defaultOptions: server.defaultOptions || [],
-          availableOptions: server.availableOptions || [],
-          datacenters: server.datacenters || []
+          defaultOptions: Array.isArray(server.defaultOptions) ? server.defaultOptions : [],
+          availableOptions: Array.isArray(server.availableOptions) ? server.availableOptions : [],
+          datacenters: Array.isArray(server.datacenters) ? server.datacenters : []
         };
         
         // 显示额外调试信息
-        console.log(`服务器 ${server.planCode} 硬件信息:`, {
+        console.log(`服务器 ${formattedServer.planCode} 硬件信息:`, {
           cpu: formattedServer.cpu,
           memory: formattedServer.memory,
           storage: formattedServer.storage,
@@ -449,17 +460,58 @@ const ServersPage = () => {
       .map(([dc]) => dc.toLowerCase());
   };
 
-  // 切换选项
-  const toggleOption = (serverPlanCode: string, optionValue: string) => {
+  // 切换选项，支持单选逻辑
+  const toggleOption = (serverPlanCode: string, optionValue: string, groupName?: string) => {
     setSelectedOptions(prev => {
-      const currentOptions = [...(prev[serverPlanCode] || [])];
+      let currentOptions = [...(prev[serverPlanCode] || [])];
       const index = currentOptions.indexOf(optionValue);
       
       if (index >= 0) {
         // 如果选项已经选中，则移除它
         currentOptions.splice(index, 1);
       } else {
-        // 如果选项未选中，则添加它
+        // 如果选项未选中，并且提供了组名，则实现单选逻辑
+        if (groupName) {
+          // 获取服务器的所有可用选项
+          const serverOptions = servers.find(s => s.planCode === serverPlanCode)?.availableOptions || [];
+          
+          // 找出同组中的其他选项，并从当前选中列表中移除
+          serverOptions.forEach(option => {
+            const optionFamily = option.family?.toLowerCase() || "";
+            const optionLabel = option.label.toLowerCase();
+            
+            // 检查此选项是否属于同一组
+            let isInSameGroup = false;
+            
+            if (groupName === "CPU/处理器" && 
+                (optionFamily.includes("cpu") || optionFamily.includes("processor") || 
+                 optionLabel.includes("cpu") || optionLabel.includes("processor"))) {
+              isInSameGroup = true;
+            } else if (groupName === "内存" && 
+                      (optionFamily.includes("memory") || optionFamily.includes("ram") || 
+                       optionLabel.includes("ram") || optionLabel.includes("memory"))) {
+              isInSameGroup = true;
+            } else if (groupName === "存储" && 
+                      (optionFamily.includes("storage") || optionFamily.includes("disk") || 
+                       optionLabel.includes("ssd") || optionLabel.includes("hdd"))) {
+              isInSameGroup = true;
+            } else if (groupName === "带宽/网络" && 
+                      (optionFamily.includes("bandwidth") || optionFamily.includes("traffic") || 
+                       optionLabel.includes("bandwidth") || optionLabel.includes("network"))) {
+              isInSameGroup = true;
+            }
+            
+            // 如果是同组选项且不是当前选择的选项，则从选中列表中移除
+            if (isInSameGroup && option.value !== optionValue) {
+              const idx = currentOptions.indexOf(option.value);
+              if (idx >= 0) {
+                currentOptions.splice(idx, 1);
+              }
+            }
+          });
+        }
+        
+        // 添加当前选择的选项
         currentOptions.push(optionValue);
       }
       
@@ -766,19 +818,89 @@ const ServersPage = () => {
                 <div key={groupName} className="mb-3">
                   <div className="font-medium text-cyber-blue mb-1">{groupName}</div>
                   <div className="space-y-1 mb-2">
-                    {options.map(option => (
-                      <div key={option.value} className="flex items-center">
-                        <label className="cyber-checkbox-container flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isOptionSelected(server.planCode, option.value)}
-                            onChange={() => toggleOption(server.planCode, option.value)}
-                            className="mr-2"
-                          />
-                          <span className="text-sm">{option.label}</span>
-                        </label>
-                      </div>
-                    ))}
+                    {options.map(option => {
+                      // 格式化显示值，添加友好值+原始值双重显示
+                      let displayLabel = option.label;
+                      
+                      // 对于RAM，尝试提取内存大小
+                      if (groupName === "内存" && option.value.includes("ram-")) {
+                        const ramMatch = option.value.match(/ram-(\d+)g/i);
+                        if (ramMatch) {
+                          displayLabel = `${ramMatch[1]}GB (${option.value})`;
+                        }
+                      }
+                      
+                      // 对于存储，尝试提取容量和类型
+                      if ((groupName === "存储" && option.value.includes("raid")) || option.value.includes("ssd") || option.value.includes("hdd") || option.value.includes("nvme")) {
+                        // 匹配 hybridsoftraid-2x6000sa-2x512nvme-24rise 这样的格式
+                        const hybridRaidMatch = option.value.match(/hybridsoftraid-(\d+)x(\d+)(sa|ssd|hdd)-(\d+)x(\d+)(nvme|ssd|hdd)/i);
+                        if (hybridRaidMatch) {
+                          const count1 = hybridRaidMatch[1];
+                          const size1 = hybridRaidMatch[2];
+                          const type1 = hybridRaidMatch[3].toUpperCase();
+                          const count2 = hybridRaidMatch[4];
+                          const size2 = hybridRaidMatch[5];
+                          const type2 = hybridRaidMatch[6].toUpperCase();
+                          displayLabel = `混合RAID ${count1}x ${size1}GB ${type1} + ${count2}x ${size2}GB ${type2} (${option.value})`;
+                        } else {
+                          // 标准RAID格式
+                          const storageMatch = option.value.match(/(raid|softraid)-(\d+)x(\d+)(sa|ssd|hdd|nvme)/i);
+                          if (storageMatch) {
+                            const raidType = storageMatch[1].toUpperCase();
+                            const count = storageMatch[2];
+                            const size = storageMatch[3];
+                            const diskType = storageMatch[4].toUpperCase();
+                            displayLabel = `${raidType} ${count}x ${size}GB ${diskType} (${option.value})`;
+                          }
+                        }
+                      }
+                      
+                      // 对于带宽，尝试提取速率
+                      if (groupName === "带宽/网络" && (option.value.includes("bandwidth") || option.value.includes("traffic"))) {
+                        const bwMatch = option.value.match(/bandwidth-(\d+)/i);
+                        if (bwMatch) {
+                          const speed = parseInt(bwMatch[1]);
+                          displayLabel = speed >= 1000 
+                            ? `${speed/1000} Gbps (${option.value})` 
+                            : `${speed} Mbps (${option.value})`;
+                        }
+                        
+                        // 匹配格式如 traffic-25tb-1000-24rise-apac
+                        const combinedTrafficMatch = option.value.match(/traffic-(\d+)(tb|gb|mb)-(\d+)/i);
+                        if (combinedTrafficMatch) {
+                          const trafficSize = combinedTrafficMatch[1];
+                          const trafficUnit = combinedTrafficMatch[2].toUpperCase();
+                          const bandwidth = combinedTrafficMatch[3];
+                          displayLabel = `${bandwidth} Mbps / ${trafficSize} ${trafficUnit}流量 (${option.value})`;
+                        } else {
+                          // 匹配仅有流量限制的格式 traffic-25tb
+                          const trafficMatch = option.value.match(/traffic-(\d+)(tb|gb)/i);
+                          if (trafficMatch) {
+                            displayLabel = `${trafficMatch[1]} ${trafficMatch[2].toUpperCase()} 流量 (${option.value})`;
+                          }
+                        }
+
+                        // 匹配无限流量
+                        if (option.value.toLowerCase().includes("unlimited")) {
+                          displayLabel = `无限流量 (${option.value})`;
+                        }
+                      }
+                      
+                      return (
+                        <div key={option.value} className="flex items-center">
+                          <label className="cyber-radio-container flex items-center cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`${server.planCode}-${groupName}`}
+                              checked={isOptionSelected(server.planCode, option.value)}
+                              onChange={() => toggleOption(server.planCode, option.value, groupName)}
+                              className="mr-2"
+                            />
+                            <span className="text-sm">{displayLabel}</span>
+                          </label>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );

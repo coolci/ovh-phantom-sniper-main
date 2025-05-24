@@ -442,24 +442,39 @@ def load_server_list():
         return []
     
     try:
-        # 记录完整的API响应用于调试
+        # 保存完整的API原始响应
         try:
-            add_log("INFO", f"正在从OVH API获取服务器数据...")
-            raw_response = client.get(f'/order/catalog/public/eco?ovhSubsidiary={config["zone"]}')
-            with open("ovh_api_raw_response.json", "w") as f:
-                json.dump(raw_response, f, indent=2)
-            add_log("INFO", f"已保存OVH API原始数据到ovh_api_raw_response.json")
+            # 创建一个目录来存储API数据
+            if not os.path.exists("api_data"):
+                os.makedirs("api_data")
+                
+            # 尝试获取并保存原始目录响应
+            catalog = client.get(f'/order/catalog/public/eco?ovhSubsidiary={config["zone"]}')
+            with open(os.path.join("api_data", "ovh_catalog_raw.json"), "w") as f:
+                json.dump(catalog, f, indent=2)
+            add_log("INFO", "已保存完整的API原始响应")
         except Exception as e:
-            add_log("ERROR", f"保存OVH API原始数据失败: {str(e)}")
+            add_log("WARNING", f"保存API原始响应时出错: {str(e)}")
         
         # Get server models
         catalog = client.get(f'/order/catalog/public/eco?ovhSubsidiary={config["zone"]}')
         plans = []
         
+        # 创建一个计数器，记录硬件信息提取成功的服务器数量
+        hardware_info_counter = {
+            "total": 0,
+            "cpu_success": 0,
+            "memory_success": 0,
+            "storage_success": 0,
+            "bandwidth_success": 0
+        }
+        
         for plan in catalog.get("plans", []):
             plan_code = plan.get("planCode")
             if not plan_code:
                 continue
+            
+            hardware_info_counter["total"] += 1
             
             # Get availability
             availabilities = client.get('/dedicated/server/datacenter/availabilities', planCode=plan_code)
@@ -539,12 +554,220 @@ def load_server_list():
                 "availableOptions": available_options
             }
             
+            # 保存服务器详细数据，以便于调试
+            try:
+                # 创建一个目录来存储服务器数据
+                server_data_dir = os.path.join("api_data", plan_code)
+                if not os.path.exists(server_data_dir):
+                    os.makedirs(server_data_dir)
+                
+                # 保存详细的plan数据
+                with open(os.path.join(server_data_dir, "plan_data.json"), "w") as f:
+                    json.dump(plan, f, indent=2)
+                
+                # 保存addonFamilies数据，如果存在
+                if plan.get("addonFamilies") and isinstance(plan.get("addonFamilies"), list):
+                    with open(os.path.join(server_data_dir, "addonFamilies.json"), "w") as f:
+                        json.dump(plan.get("addonFamilies"), f, indent=2)
+                
+                add_log("INFO", f"已保存服务器{plan_code}的详细数据用于调试")
+            except Exception as e:
+                add_log("WARNING", f"保存服务器详细数据时出错: {str(e)}")
+            
+            # 处理特殊系列处理逻辑
+            special_server_processed = False
+            try:
+                # 检查是否为SYSLE系列服务器
+                if "sysle" in plan_code.lower():
+                    add_log("INFO", f"检测到SYSLE系列服务器: {plan_code}")
+                    
+                    # 尝试从plan_code提取信息
+                    # 通常SYSLE的格式为"25sysle021"，可能包含CPU型号或配置信息
+                    # 根据不同型号添加更具体的CPU信息
+                    if "011" in plan_code:
+                        server_info["cpu"] = "SYSLE 011系列 (入门级服务器CPU)"
+                    elif "021" in plan_code:
+                        server_info["cpu"] = "SYSLE 021系列 (中端服务器CPU)"
+                    elif "031" in plan_code:
+                        server_info["cpu"] = "SYSLE 031系列 (高端服务器CPU)"
+                    else:
+                        server_info["cpu"] = "SYSLE系列CPU"
+                    
+                    # 获取服务器显示名称和描述，可能包含CPU信息
+                    display_name = plan.get("displayName", "")
+                    invoice_name = plan.get("invoiceName", "")
+                    description = plan.get("description", "")
+                    
+                    # 检查名称中是否包含具体CPU型号信息
+                    found_cpu = False
+                    for name in [display_name, invoice_name, description]:
+                        if not name:
+                            continue
+                            
+                        # 查找CPU型号关键词
+                        cpu_keywords = ["i7-", "i9-", "i5-", "xeon", "epyc", "ryzen"]
+                        for keyword in cpu_keywords:
+                            if keyword.lower() in name.lower():
+                                # 提取包含CPU型号的部分
+                                start_pos = name.lower().find(keyword.lower())
+                                end_pos = min(start_pos + 30, len(name))  # 提取最多30个字符
+                                cpu_info = name[start_pos:end_pos].split(",")[0].strip()
+                                server_info["cpu"] = cpu_info
+                                add_log("INFO", f"从关键词中提取SYSLE CPU型号: {cpu_info} 给 {plan_code}")
+                                found_cpu = True
+                                break
+                        
+                        if found_cpu:
+                            break
+                    
+                    # 尝试寻找更具体的信息
+                    # 保存原始数据以便分析
+                    try:
+                        with open(f"sysle_server_{plan_code}.json", "w") as f:
+                            json.dump(plan, f, indent=2)
+                        add_log("INFO", f"已保存SYSLE服务器{plan_code}的原始数据")
+                    except Exception as e:
+                        add_log("WARNING", f"保存SYSLE服务器数据时出错: {str(e)}")
+                    
+                    special_server_processed = True
+                
+                # 检查是否为SK系列服务器
+                elif "sk" in plan_code.lower():
+                    add_log("INFO", f"检测到SK系列服务器: {plan_code}")
+                    
+                    # 获取服务器显示名称和描述，可能包含CPU信息
+                    display_name = plan.get("displayName", "")
+                    invoice_name = plan.get("invoiceName", "")
+                    description = plan.get("description", "")
+                    
+                    # 检查名称中是否包含具体CPU型号信息
+                    found_cpu = False
+                    for name in [display_name, invoice_name, description]:
+                        if not name:
+                            continue
+                            
+                        # 查找典型的CPU信息格式，例如"KS-A | Intel i7-6700k"
+                        if "|" in name:
+                            parts = name.split("|")
+                            if len(parts) > 1:
+                                cpu_part = parts[1].strip()
+                                if "intel" in cpu_part.lower() or "amd" in cpu_part.lower() or "xeon" in cpu_part.lower() or "i7" in cpu_part.lower():
+                                    server_info["cpu"] = cpu_part
+                                    add_log("INFO", f"从名称中提取CPU型号: {cpu_part} 给 {plan_code}")
+                                    found_cpu = True
+                        
+                        # 直接查找CPU型号关键词
+                        cpu_keywords = ["i7-", "i9-", "i5-", "xeon", "epyc", "ryzen"]
+                        for keyword in cpu_keywords:
+                            if keyword.lower() in name.lower():
+                                # 提取包含CPU型号的部分
+                                start_pos = name.lower().find(keyword.lower())
+                                end_pos = min(start_pos + 30, len(name))  # 提取最多30个字符
+                                cpu_info = name[start_pos:end_pos].split(",")[0].strip()
+                                server_info["cpu"] = cpu_info
+                                add_log("INFO", f"从关键词中提取CPU型号: {cpu_info} 给 {plan_code}")
+                                found_cpu = True
+                                break
+                        
+                        if found_cpu:
+                            break
+                    
+                    # 如果没有找到详细的CPU型号，使用默认值
+                    if not found_cpu:
+                        server_info["cpu"] = "SK系列专用CPU"
+                    
+                    # 尝试寻找更具体的信息
+                    # 保存原始数据以便分析
+                    try:
+                        with open(f"sk_server_{plan_code}.json", "w") as f:
+                            json.dump(plan, f, indent=2)
+                        add_log("INFO", f"已保存SK服务器{plan_code}的原始数据")
+                    except Exception as e:
+                        add_log("WARNING", f"保存SK服务器数据时出错: {str(e)}")
+                    
+                    special_server_processed = True
+                
+                # 添加更多特殊系列处理...
+                
+                # 确保所有服务器都有CPU信息
+                if server_info["cpu"] == "N/A":
+                    add_log("INFO", f"服务器 {plan_code} 无法从API提取CPU信息，尝试从名称提取")
+                    
+                    # 尝试从名称中提取CPU信息
+                    display_name = plan.get("displayName", "")
+                    invoice_name = plan.get("invoiceName", "")
+                    description = plan.get("description", "")
+                    
+                    found_cpu = False
+                    for name in [display_name, invoice_name, description]:
+                        if not name:
+                            continue
+                            
+                        # 检查是否有CPU型号信息
+                        cpu_keywords = ["i7-", "i9-", "i5-", "xeon", "epyc", "ryzen", "processor", "cpu"]
+                        for keyword in cpu_keywords:
+                            if keyword.lower() in name.lower():
+                                # 提取包含CPU型号的部分
+                                start_pos = name.lower().find(keyword.lower())
+                                end_pos = min(start_pos + 30, len(name))  # 提取最多30个字符
+                                cpu_info = name[start_pos:end_pos].split(",")[0].strip()
+                                server_info["cpu"] = cpu_info
+                                add_log("INFO", f"从名称关键词中提取CPU型号: {cpu_info} 给 {plan_code}")
+                                found_cpu = True
+                                break
+                        
+                        if found_cpu:
+                            break
+                    
+                    # 如果仍然没有找到CPU信息，使用默认值
+                    if not found_cpu:
+                        if "sysle" in plan_code.lower():
+                            server_info["cpu"] = "SYSLE系列专用CPU"
+                        elif "rise" in plan_code.lower():
+                            server_info["cpu"] = "RISE系列专用CPU"
+                        elif "game" in plan_code.lower():
+                            server_info["cpu"] = "GAME系列专用CPU"
+                        else:
+                            server_info["cpu"] = "专用服务器CPU"
+            except Exception as e:
+                add_log("WARNING", f"处理特殊系列服务器时出错: {str(e)}")
+                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
+                
+                # 出错时也确保有默认CPU信息
+                if server_info["cpu"] == "N/A":
+                    server_info["cpu"] = "专用服务器CPU"
+            
+            # 如果是特殊处理的服务器，记录日志
+            if special_server_processed:
+                add_log("INFO", f"已对服务器 {plan_code} 应用特殊处理逻辑")
+            
             # 获取服务器名称和描述，确保它们不为空
             if not server_info["name"] and plan.get("displayName"):
                 server_info["name"] = plan.get("displayName")
             
             if not server_info["description"] and plan.get("displayName"):
                 server_info["description"] = plan.get("displayName")
+            
+            # 尝试从服务器名称标签中提取CPU信息
+            # 例如"KS-A | Intel i7-6700k"格式
+            if server_info["cpu"] == "N/A" or "系列" in server_info["cpu"]:
+                try:
+                    display_name = plan.get("displayName", "")
+                    invoice_name = plan.get("invoiceName", "")
+                    
+                    for name in [display_name, invoice_name]:
+                        if not name or "|" not in name:
+                            continue
+                            
+                        parts = name.split("|")
+                        if len(parts) > 1:
+                            cpu_part = parts[1].strip()
+                            if "intel" in cpu_part.lower() or "amd" in cpu_part.lower() or "xeon" in cpu_part.lower() or "i7" in cpu_part.lower():
+                                server_info["cpu"] = cpu_part
+                                add_log("INFO", f"从服务器名称标签中提取CPU: {cpu_part} 给 {plan_code}")
+                                break
+                except Exception as e:
+                    add_log("WARNING", f"从名称提取CPU时出错: {str(e)}")
             
             # 获取推荐配置和可选配置 - 使用多种方法处理不同格式
             try:
@@ -601,16 +824,27 @@ def load_server_list():
                 # 方法 4: 尝试从plan.addonFamilies中提取硬件信息
                 printed_example = False
                 try:
-                    if plan.get("addonFamilies") and isinstance(plan.get("addonFamilies"), list):
+                if plan.get("addonFamilies") and isinstance(plan.get("addonFamilies"), list):
+                        # 尝试保存完整的addonFamilies数据用于更深入分析
+                        try:
+                            with open(f"addonFamilies_{plan_code}.json", "w") as f:
+                                json.dump(plan.get("addonFamilies"), f, indent=2)
+                            add_log("INFO", f"已保存服务器 {plan_code} 的addonFamilies数据")
+                        except Exception as e:
+                            add_log("WARNING", f"保存addonFamilies数据时出错: {str(e)}")
+                        
                         # 打印一个完整的addonFamilies示例用于调试
                         if len(plan.get("addonFamilies")) > 0 and not printed_example:
-                            add_log("INFO", f"addonFamilies示例: {json.dumps(plan.get('addonFamilies')[0], indent=2)}")
-                            printed_example = True
+                            try:
+                                add_log("INFO", f"addonFamilies示例: {json.dumps(plan.get('addonFamilies')[0], indent=2)}")
+                                printed_example = True
+                            except Exception as e:
+                                add_log("WARNING", f"无法序列化addonFamilies示例: {str(e)}")
                         
                         # 尝试保存所有带宽相关的选项用于调试
                         try:
                             bandwidth_options = []
-                            for family in plan.get("addonFamilies"):
+                    for family in plan.get("addonFamilies"):
                                 family_name = family.get("name", "").lower()
                                 if ("bandwidth" in family_name or "traffic" in family_name or "network" in family_name):
                                     bandwidth_options.append({
@@ -631,6 +865,10 @@ def load_server_list():
                         
                         # 提取addonFamilies信息
                         for family in plan.get("addonFamilies"):
+                            if not isinstance(family, dict):
+                                add_log("WARNING", f"addonFamily不是字典类型: {family}")
+                                continue
+                                
                             family_name = family.get("name", "").lower()  # 注意: 在API响应中是'name'而不是'family'
                             default_addon = family.get("default")  # 获取默认选项
                             
@@ -639,8 +877,8 @@ def load_server_list():
                                 for addon_code in family.get("addons"):
                                     # 在API响应中，addons是字符串数组而不是对象数组
                                     if not isinstance(addon_code, str):
-                                        continue
-                                    
+                                continue
+                            
                                     # 标记是否为默认选项
                                     is_default = (addon_code == default_addon)
                                     
@@ -666,8 +904,8 @@ def load_server_list():
                                         "panel" in addon_code.lower()
                                     ):
                                         # 跳过许可证类选项
-                                        continue
-                                    
+                                continue
+                            
                                     if addon_code:
                                         temp_available_options.append({
                                             "label": addon_desc,
@@ -693,6 +931,27 @@ def load_server_list():
                                     if default_value:
                                         server_info["cpu"] = default_value
                                         add_log("INFO", f"从addonFamilies默认选项提取CPU: {default_value} 给 {plan_code}")
+                                        
+                                        # 尝试从CPU选项中提取更详细信息
+                                        try:
+                                            # 记录CPU选项的完整列表，方便调试
+                                            if family.get("addons") and isinstance(family.get("addons"), list):
+                                                cpu_options = []
+                                                for cpu_addon in family.get("addons"):
+                                                    if isinstance(cpu_addon, str):
+                                                        cpu_options.append(cpu_addon)
+                                                
+                                                if cpu_options:
+                                                    add_log("INFO", f"服务器 {plan_code} 的CPU选项: {', '.join(cpu_options)}")
+                                                    
+                                                    # 保存到文件以便更详细分析
+                                                    try:
+                                                        with open(f"cpu_options_{plan_code}.json", "w") as f:
+                                                            json.dump({"options": cpu_options, "default": default_value}, f, indent=2)
+                                                    except Exception as e:
+                                                        add_log("WARNING", f"保存CPU选项时出错: {str(e)}")
+                                        except Exception as e:
+                                            add_log("WARNING", f"解析CPU选项时出错: {str(e)}")
                                 
                                 # 内存信息
                                 elif ("memory" in family_name or "ram" in family_name) and server_info["memory"] == "N/A":
@@ -711,17 +970,30 @@ def load_server_list():
                                 # 存储信息
                                 elif ("storage" in family_name or "disk" in family_name or "drive" in family_name or "ssd" in family_name or "hdd" in family_name) and server_info["storage"] == "N/A":
                                     if default_value:
-                                        # 尝试从存储代码中提取信息
-                                        storage_match = re.search(r'(\d+)x(\d+)(ssd|hdd|nvme)', default_value, re.IGNORECASE)
-                                        if storage_match:
-                                            count = storage_match.group(1)
-                                            size = storage_match.group(2)
-                                            type_str = storage_match.group(3).upper()
-                                            server_info["storage"] = f"{count}x {size}GB {type_str}"
-                                            add_log("INFO", f"从addonFamilies默认选项提取存储: {server_info['storage']} 给 {plan_code}")
+                                        # 尝试匹配混合RAID格式
+                                        hybrid_storage_match = re.search(r'hybridsoftraid-(\d+)x(\d+)(sa|ssd|hdd)-(\d+)x(\d+)(nvme|ssd|hdd)', default_value, re.IGNORECASE)
+                                        if hybrid_storage_match:
+                                            count1 = hybrid_storage_match.group(1)
+                                            size1 = hybrid_storage_match.group(2)
+                                            type1 = hybrid_storage_match.group(3).upper()
+                                            count2 = hybrid_storage_match.group(4)
+                                            size2 = hybrid_storage_match.group(5)
+                                            type2 = hybrid_storage_match.group(6).upper()
+                                            server_info["storage"] = f"混合RAID {count1}x {size1}GB {type1} + {count2}x {size2}GB {type2}"
+                                            add_log("INFO", f"从addonFamilies默认选项提取混合存储: {server_info['storage']} 给 {plan_code}")
                                         else:
-                                            server_info["storage"] = default_value
-                                            add_log("INFO", f"从addonFamilies默认选项提取存储(原始值): {default_value} 给 {plan_code}")
+                                            # 尝试从存储代码中提取信息
+                                            storage_match = re.search(r'(raid|softraid)-(\d+)x(\d+)(ssd|hdd|nvme|sa)', default_value, re.IGNORECASE)
+                                            if storage_match:
+                                                raid_type = storage_match.group(1).upper()
+                                                count = storage_match.group(2)
+                                                size = storage_match.group(3)
+                                                type_str = storage_match.group(4).upper()
+                                                server_info["storage"] = f"{raid_type} {count}x {size}GB {type_str}"
+                                                add_log("INFO", f"从addonFamilies默认选项提取存储: {server_info['storage']} 给 {plan_code}")
+                                            else:
+                                                server_info["storage"] = default_value
+                                                add_log("INFO", f"从addonFamilies默认选项提取存储(原始值): {default_value} 给 {plan_code}")
                                 
                                 # 带宽信息
                                 elif ("bandwidth" in family_name or "traffic" in family_name or "network" in family_name) and server_info["bandwidth"] == "N/A":
@@ -756,9 +1028,15 @@ def load_server_list():
                                             add_log("INFO", f"从addonFamilies默认选项提取带宽: {server_info['bandwidth']} 给 {plan_code}")
                                         
                                         # 格式4: traffic-unlimited (无限流量)
-                                        elif "traffic-unlimited" in default_value.lower():
-                                            server_info["bandwidth"] = "无限流量"
-                                            add_log("INFO", f"从addonFamilies默认选项提取带宽: 无限流量 给 {plan_code}")
+                                        elif "traffic-unlimited" in default_value.lower() or "unlimited" in default_value.lower():
+                                            # 检查是否有带宽限制
+                                            bw_match = re.search(r'(\d+)', default_value)
+                                            if bw_match:
+                                                bw_value = int(bw_match.group(1))
+                                                server_info["bandwidth"] = f"{bw_value} Mbps / 无限流量"
+                                            else:
+                                                server_info["bandwidth"] = "无限流量"
+                                            add_log("INFO", f"从addonFamilies默认选项提取带宽: {server_info['bandwidth']} 给 {plan_code}")
                                         
                                         # 格式5: bandwidth-guarantee (保证带宽)
                                         elif "guarantee" in default_value.lower() or "guaranteed" in default_value.lower():
@@ -770,6 +1048,17 @@ def load_server_list():
                                             else:
                                                 server_info["bandwidth"] = "保证带宽"
                                                 add_log("INFO", f"从addonFamilies默认选项提取保证带宽(无具体值) 给 {plan_code}")
+                                        
+                                        # 格式6: vrack-bandwidth (内部网络带宽)
+                                        elif "vrack" in default_value.lower():
+                                            vrack_bw_match = re.search(r'vrack-bandwidth-(\d+)', default_value, re.IGNORECASE)
+                                            if vrack_bw_match:
+                                                bw_value = int(vrack_bw_match.group(1))
+                                                if bw_value >= 1000:
+                                                    server_info["vrackBandwidth"] = f"{bw_value/1000:.1f} Gbps".replace(".0 ", " ")
+                                                else:
+                                                    server_info["vrackBandwidth"] = f"{bw_value} Mbps"
+                                                add_log("INFO", f"从addonFamilies默认选项提取内部网络带宽: {server_info['vrackBandwidth']} 给 {plan_code}")
                                         
                                         # 无法识别的格式，使用原始值
                                         else:
@@ -812,6 +1101,11 @@ def load_server_list():
             try:
                 if plan.get("details") and plan.get("details").get("properties"):
                     for prop in plan.get("details").get("properties"):
+                        # 添加类型检查，确保prop是字典类型
+                        if not isinstance(prop, dict):
+                            add_log("WARNING", f"属性项不是字典类型: {prop}")
+                            continue
+                            
                         prop_name = prop.get("name", "").lower()
                         value = prop.get("value", "N/A")
                         
@@ -940,16 +1234,25 @@ def load_server_list():
                                 server_info["storage"] = f"{size} {disk_type}"
                             
                             add_log("INFO", f"从文本中提取存储: {server_info['storage']} 给 {plan_code}")
-                            break
+                                break
             except Exception as e:
                 add_log("WARNING", f"解析 {plan_code} 服务器名称时出错: {str(e)}")
                 add_log("WARNING", f"错误详情: {traceback.format_exc()}")
             
             # 解析方法 3: 尝试从产品配置中提取信息
             try:
-                if plan.get("product") and plan.get("product").get("configurations"):
+                if plan.get("product") and isinstance(plan.get("product"), dict) and plan.get("product").get("configurations"):
                     configs = plan.get("product").get("configurations")
+                    if not isinstance(configs, list):
+                        add_log("WARNING", f"产品配置不是列表类型: {configs}")
+                        configs = []
+                        
                     for config in configs:
+                        # 添加类型检查，确保config是字典类型
+                        if not isinstance(config, dict):
+                            add_log("WARNING", f"产品配置项不是字典类型: {config}")
+                            continue
+                            
                         config_name = config.get("name", "").lower()
                         value = config.get("value")
                         
@@ -968,6 +1271,7 @@ def load_server_list():
                                 add_log("INFO", f"从产品配置提取带宽: {value} 给 {plan_code}")
             except Exception as e:
                 add_log("WARNING", f"解析 {plan_code} 产品配置时出错: {str(e)}")
+                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
             
             # 解析方法 4: 尝试从description解析信息
             try:
@@ -998,9 +1302,18 @@ def load_server_list():
             
             # 解析方法 5: 从pricing获取信息
             try:
-                if plan.get("pricing") and plan.get("pricing").get("configurations"):
+                if plan.get("pricing") and isinstance(plan.get("pricing"), dict) and plan.get("pricing").get("configurations"):
                     pricing_configs = plan.get("pricing").get("configurations")
+                    if not isinstance(pricing_configs, list):
+                        add_log("WARNING", f"价格配置不是列表类型: {pricing_configs}")
+                        pricing_configs = []
+                        
                     for price_config in pricing_configs:
+                        # 添加类型检查，确保price_config是字典类型
+                        if not isinstance(price_config, dict):
+                            add_log("WARNING", f"价格配置项不是字典类型: {price_config}")
+                            continue
+                            
                         config_name = price_config.get("name", "").lower()
                         value = price_config.get("value")
                         
@@ -1016,6 +1329,7 @@ def load_server_list():
                                 add_log("INFO", f"从pricing配置提取存储: {value} 给 {plan_code}")
             except Exception as e:
                 add_log("WARNING", f"解析 {plan_code} pricing配置时出错: {str(e)}")
+                add_log("WARNING", f"错误详情: {traceback.format_exc()}")
             
             # 清理提取的数据以确保格式一致
             # 对于CPU，添加一些基本信息如果只有核心数
@@ -1026,25 +1340,71 @@ def load_server_list():
             server_info["defaultOptions"] = default_options
             server_info["availableOptions"] = available_options
             
+            # 更新硬件信息计数器
+            if server_info["cpu"] != "N/A":
+                hardware_info_counter["cpu_success"] += 1
+            if server_info["memory"] != "N/A":
+                hardware_info_counter["memory_success"] += 1
+            if server_info["storage"] != "N/A":
+                hardware_info_counter["storage_success"] += 1
+            if server_info["bandwidth"] != "N/A":
+                hardware_info_counter["bandwidth_success"] += 1
+            
             plans.append(server_info)
         
-        # 为所有服务器记录日志
-        add_log("INFO", f"成功加载 {len(plans)} 台服务器信息")
-        
-        # 记录缺失信息的服务器
-        missing_info_servers = [
-            plan["planCode"] for plan in plans 
-            if plan["cpu"] == "N/A" or plan["memory"] == "N/A" or plan["storage"] == "N/A"
-        ]
-        
-        if missing_info_servers:
-            add_log("WARNING", f"以下服务器缺少硬件信息: {', '.join(missing_info_servers)}")
+        # 记录硬件信息提取的成功率
+        total = hardware_info_counter["total"]
+        if total > 0:
+            cpu_rate = (hardware_info_counter["cpu_success"] / total) * 100
+            memory_rate = (hardware_info_counter["memory_success"] / total) * 100
+            storage_rate = (hardware_info_counter["storage_success"] / total) * 100
+            bandwidth_rate = (hardware_info_counter["bandwidth_success"] / total) * 100
+            
+            add_log("INFO", f"服务器硬件信息提取成功率: CPU={cpu_rate:.1f}%, 内存={memory_rate:.1f}%, "
+                           f"存储={storage_rate:.1f}%, 带宽={bandwidth_rate:.1f}%")
         
         return plans
     except Exception as e:
-        add_log("ERROR", f"加载服务器列表失败: {str(e)}")
+        add_log("ERROR", f"Failed to load server list: {str(e)}")
         add_log("ERROR", f"错误详情: {traceback.format_exc()}")
         return []
+
+# 保存完整的API原始响应用于调试分析
+def save_raw_api_response(client, zone):
+    try:
+        # 创建目录用于存储API响应
+        if not os.path.exists("api_responses"):
+            os.makedirs("api_responses")
+        
+        # 获取目录并保存
+        catalog = client.get(f'/order/catalog/public/eco?ovhSubsidiary={zone}')
+        with open(os.path.join("api_responses", "catalog_response.json"), "w") as f:
+            json.dump(catalog, f, indent=2)
+        
+        add_log("INFO", "已保存目录API原始响应")
+        
+        # 获取可用的服务器列表
+        available_servers = client.get('/dedicated/server/datacenter/availabilities')
+        with open(os.path.join("api_responses", "availability_response.json"), "w") as f:
+            json.dump(available_servers, f, indent=2)
+        
+        add_log("INFO", "已保存可用性API原始响应")
+        
+        # 尝试获取一些具体服务器的详细信息
+        if available_servers and len(available_servers) > 0:
+            for i, server in enumerate(available_servers[:5]):  # 只获取前5个服务器的信息
+                server_code = server.get("planCode")
+                if server_code:
+                    try:
+                        server_details = client.get(f'/order/catalog/formatted/eco?planCode={server_code}&ovhSubsidiary={zone}')
+                        with open(os.path.join("api_responses", f"server_details_{server_code}.json"), "w") as f:
+                            json.dump(server_details, f, indent=2)
+                        add_log("INFO", f"已保存服务器{server_code}的详细API响应")
+                    except Exception as e:
+                        add_log("WARNING", f"获取服务器{server_code}详细信息时出错: {str(e)}")
+        
+    except Exception as e:
+        add_log("WARNING", f"保存API原始响应时出错: {str(e)}")
 
 # Routes
 @app.route('/api/settings', methods=['GET'])
@@ -1202,9 +1562,39 @@ def get_servers():
         else:
             add_log("WARNING", "从OVH API加载服务器列表失败")
     
-    # 返回包装的数据结构，以便前端可以正确处理
-    response = {"servers": server_plans}
-    return jsonify(response)
+    # 确保返回的服务器对象具有所有必要字段
+    validated_servers = []
+    
+    for server in server_plans:
+        # 确保每个字段都有合理的默认值
+        validated_server = {
+            "planCode": server.get("planCode", "未知"),
+            "name": server.get("name", "未命名服务器"),
+            "description": server.get("description", ""),
+            "cpu": server.get("cpu", "N/A"),
+            "memory": server.get("memory", "N/A"),
+            "storage": server.get("storage", "N/A"),
+            "bandwidth": server.get("bandwidth", "N/A"),
+            "vrackBandwidth": server.get("vrackBandwidth", "N/A"),
+            "defaultOptions": server.get("defaultOptions", []),
+            "availableOptions": server.get("availableOptions", []),
+            "datacenters": server.get("datacenters", [])
+        }
+        
+        # 确保数组类型的字段是有效的数组
+        if not isinstance(validated_server["defaultOptions"], list):
+            validated_server["defaultOptions"] = []
+        
+        if not isinstance(validated_server["availableOptions"], list):
+            validated_server["availableOptions"] = []
+        
+        if not isinstance(validated_server["datacenters"], list):
+            validated_server["datacenters"] = []
+        
+        validated_servers.append(validated_server)
+    
+    # 返回服务器列表数组，前端将直接处理这个数组
+    return jsonify(validated_servers)
 
 @app.route('/api/availability/<plan_code>', methods=['GET'])
 def get_availability(plan_code):
