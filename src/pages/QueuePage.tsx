@@ -46,10 +46,11 @@ const QueuePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [servers, setServers] = useState<ServerPlan[]>([]);
+  const [planCodeInput, setPlanCodeInput] = useState<string>("");
   const [selectedServer, setSelectedServer] = useState<ServerPlan | null>(null);
-  const [selectedDatacenter, setSelectedDatacenter] = useState<string>("");
+  const [selectedDatacenters, setSelectedDatacenters] = useState<string[]>([]);
   const [retryInterval, setRetryInterval] = useState<number>(30);
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [allAvailableDatacenters, setAllAvailableDatacenters] = useState<{ datacenter: string; dcName: string; }[]>([]);
 
   // Fetch queue items
   const fetchQueueItems = async () => {
@@ -72,9 +73,23 @@ const QueuePage = () => {
         params: { showApiServers: isAuthenticated },
       });
       
-      // 处理后端返回的数据，适配两种可能的格式
       const serversList = response.data.servers || response.data || [];
       setServers(serversList);
+
+      // Populate allAvailableDatacenters
+      const uniqueDcs = new Map<string, { datacenter: string; dcName: string }>();
+      serversList.forEach(server => {
+        if (server.datacenters) {
+          server.datacenters.forEach(dc => {
+            if (!uniqueDcs.has(dc.datacenter)) {
+              uniqueDcs.set(dc.datacenter, { datacenter: dc.datacenter, dcName: dc.dcName });
+            }
+          });
+        }
+      });
+      const sortedDcs = Array.from(uniqueDcs.values()).sort((a, b) => a.dcName.localeCompare(b.dcName));
+      setAllAvailableDatacenters(sortedDcs);
+
     } catch (error) {
       console.error("Error fetching servers:", error);
       toast.error("获取服务器列表失败");
@@ -83,31 +98,41 @@ const QueuePage = () => {
 
   // Add new queue item
   const addQueueItem = async () => {
-    if (!selectedServer || !selectedDatacenter) {
-      toast.error("请选择服务器和数据中心");
+    if (!planCodeInput.trim() || selectedDatacenters.length === 0) {
+      toast.error("请输入服务器计划代码并至少选择一个数据中心");
       return;
     }
 
-    try {
-      await axios.post(`${API_URL}/queue`, {
-        planCode: selectedServer.planCode,
-        datacenter: selectedDatacenter,
-        options: selectedOptions,
-        retryInterval: retryInterval,
-      });
-      
-      toast.success("已添加到抢购队列");
-      setShowAddForm(false);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const dc of selectedDatacenters) {
+      try {
+        await axios.post(`${API_URL}/queue`, {
+          planCode: planCodeInput.trim(),
+          datacenter: dc,
+          retryInterval: retryInterval,
+        });
+        successCount++;
+      } catch (error) {
+        console.error(`Error adding ${planCodeInput.trim()} in ${dc} to queue:`, error);
+        errorCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`${successCount}个任务已成功添加到抢购队列`);
+    }
+    if (errorCount > 0) {
+      toast.error(`${errorCount}个任务添加到抢购队列失败`);
+    }
+
+    if (successCount > 0 || errorCount === 0) {
       fetchQueueItems();
-      
-      // Reset form
-      setSelectedServer(null);
-      setSelectedDatacenter("");
-      setSelectedOptions([]);
+      setShowAddForm(false);
+      setPlanCodeInput("");
+      setSelectedDatacenters([]);
       setRetryInterval(30);
-    } catch (error) {
-      console.error("Error adding to queue:", error);
-      toast.error("添加到抢购队列失败");
     }
   };
 
@@ -151,14 +176,20 @@ const QueuePage = () => {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
 
-  // Update options when server changes
+  // Update selectedServer when planCodeInput or servers list changes
   useEffect(() => {
-    if (selectedServer) {
-      setSelectedOptions(selectedServer.defaultOptions.map(opt => opt.value));
+    if (planCodeInput.trim()) {
+      const server = servers.find(s => s.planCode === planCodeInput.trim());
+      setSelectedServer(server || null);
     } else {
-      setSelectedOptions([]);
+      setSelectedServer(null);
     }
-  }, [selectedServer]);
+  }, [planCodeInput, servers]);
+
+  // Reset selectedDatacenters when planCodeInput changes
+  useEffect(() => {
+    setSelectedDatacenters([]);
+  }, [planCodeInput]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -235,92 +266,72 @@ const QueuePage = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="block text-cyber-muted text-sm mb-1">选择服务器</label>
-                <select
-                  value={selectedServer?.planCode || ""}
-                  onChange={(e) => {
-                    const server = servers.find(s => s.planCode === e.target.value);
-                    setSelectedServer(server || null);
-                    setSelectedDatacenter("");
-                  }}
+                <label className="block text-cyber-muted text-sm mb-1">服务器计划代码</label>
+                <input
+                  type="text"
+                  value={planCodeInput}
+                  onChange={(e) => setPlanCodeInput(e.target.value)}
+                  placeholder="例如: 24sk40"
                   className="cyber-input w-full"
-                >
-                  <option value="">选择服务器</option>
-                  {servers.map((server) => (
-                    <option key={server.planCode} value={server.planCode}>
-                      {server.planCode} - {server.name}
-                    </option>
-                  ))}
-                </select>
+                />
+                {selectedServer && planCodeInput.trim() && (
+                  <p className="text-xs text-cyber-muted mt-1">匹配到: {selectedServer.name}</p>
+                )}
               </div>
-
               <div>
-                <label className="block text-cyber-muted text-sm mb-1">选择数据中心</label>
-                <select
-                  value={selectedDatacenter}
-                  onChange={(e) => setSelectedDatacenter(e.target.value)}
-                  className="cyber-input w-full"
-                  disabled={!selectedServer}
-                >
-                  <option value="">选择数据中心</option>
-                  {selectedServer?.datacenters.map((dc) => (
-                    <option key={dc.datacenter} value={dc.datacenter}>
-                      {dc.datacenter} - {dc.dcName} ({dc.region})
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-cyber-muted text-sm mb-1">选择数据中心 (可多选)</label>
+                {planCodeInput.trim() ? (
+                  allAvailableDatacenters.length > 0 ? (
+                    <div className="max-h-48 overflow-y-auto space-y-2 cyber-panel p-3 bg-cyber-grid/20 rounded border border-cyber-border">
+                      {allAvailableDatacenters.map((dc) => (
+                        <label key={dc.datacenter} className="flex items-center cyber-checkbox-label text-sm cursor-pointer hover:bg-cyber-hover p-1 rounded">
+                          <input
+                            type="checkbox"
+                            value={dc.datacenter}
+                            checked={selectedDatacenters.includes(dc.datacenter)}
+                            onChange={(e) => {
+                              const dcValue = e.target.value;
+                              setSelectedDatacenters(prev =>
+                                e.target.checked
+                                  ? [...prev, dcValue]
+                                  : prev.filter(d => d !== dcValue)
+                              );
+                            }}
+                            className="cyber-checkbox"
+                          />
+                          <span className="ml-2">{dc.dcName} ({dc.datacenter})</span>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-cyber-muted text-sm p-3 bg-cyber-grid/10 rounded border border-cyber-border">
+                      {isLoading ? "正在加载数据中心列表..." : "暂无可用数据中心信息。"}
+                    </p>
+                  )
+                ) : (
+                  <p className="text-cyber-muted text-sm p-3 bg-cyber-grid/10 rounded border border-cyber-border">
+                    请输入服务器计划代码以查看数据中心。
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="mb-4">
-              <label className="block text-cyber-muted text-sm mb-1">重试间隔（秒）</label>
+              <label className="block text-cyber-muted text-sm mb-1">抢购失败后重试间隔 (秒)</label>
               <input
                 type="number"
-                min="10"
-                max="600"
                 value={retryInterval}
-                onChange={(e) => setRetryInterval(Number(e.target.value))}
+                onChange={(e) => setRetryInterval(parseInt(e.target.value, 10))}
+                min="5"
                 className="cyber-input w-full"
               />
-              <p className="text-xs text-cyber-muted mt-1">设置检查服务器可用性的间隔时间</p>
             </div>
-
-            {selectedServer && (
-              <div className="mb-4">
-                <label className="block text-cyber-muted text-sm mb-1">选择配置选项</label>
-                <div className="cyber-panel p-3 bg-cyber-grid/20">
-                  {selectedServer.availableOptions.length === 0 ? (
-                    <p className="text-cyber-muted text-sm">没有可选配置</p>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      {selectedServer.availableOptions.map((option) => (
-                        <label key={option.value} className="flex items-center space-x-2 text-sm cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={selectedOptions.includes(option.value)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setSelectedOptions([...selectedOptions, option.value]);
-                              } else {
-                                setSelectedOptions(selectedOptions.filter(o => o !== option.value));
-                              }
-                            }}
-                            className="form-checkbox cyber-input h-4 w-4"
-                          />
-                          <span>{option.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             <div className="flex justify-end">
               <button
                 onClick={addQueueItem}
                 className="cyber-button"
-                disabled={!selectedServer || !selectedDatacenter}
+                disabled={!planCodeInput.trim() || selectedDatacenters.length === 0}
               >
                 添加到队列
               </button>

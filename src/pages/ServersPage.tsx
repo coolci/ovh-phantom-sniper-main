@@ -749,8 +749,8 @@ const ServersPage = () => {
         } else if (value.includes("bandwidth") || value.includes("traffic") || 
                   label.includes("带宽") || label.includes("bandwidth")) {
           category = "网络";
-        }
-        
+          }
+          
         if (!formattedOptions[category]) {
           formattedOptions[category] = [];
         }
@@ -1184,10 +1184,10 @@ const ServersPage = () => {
                             >
                               <div className="flex items-center">
                                 <div className="relative mr-2 flex items-center justify-center w-5 h-5">
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={() => toggleOption(server.planCode, option.value, groupName)}
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleOption(server.planCode, option.value, groupName)}
                                     className="opacity-0 absolute w-full h-full cursor-pointer"
                                   />
                                   <div className={`w-5 h-5 border rounded-sm flex items-center justify-center ${isSelected ? 'border-cyber-accent bg-cyber-accent/30' : 'border-slate-500'}`}>
@@ -1569,38 +1569,38 @@ const ServersPage = () => {
                     <div className="bg-slate-900/10 p-3">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {OVH_DATACENTERS.map(dc => {
-                          const dcCode = dc.code.toUpperCase();
+                              const dcCode = dc.code.toUpperCase();
                           // Ensure availability and selectedDatacenters are correctly scoped to the current server
-                          const availStatus = availability[server.planCode]?.[dcCode.toLowerCase()] || "unknown";
-                          const isSelected = selectedDatacenters[server.planCode]?.[dcCode];
-
+                              const availStatus = availability[server.planCode]?.[dcCode.toLowerCase()] || "unknown";
+                              const isSelected = selectedDatacenters[server.planCode]?.[dcCode];
+                              
                           let statusText = "查询中";
                           let statusColorClass = "text-yellow-400";
-
-                          if (availStatus === "unavailable") {
+                              
+                              if (availStatus === "unavailable") {
                             statusText = "不可用";
                             statusColorClass = "text-red-500";
-                          } else if (availStatus && availStatus !== "unknown") {
+                              } else if (availStatus && availStatus !== "unknown") {
                             statusText = availStatus.includes("H") ? availStatus : "可用";
                             statusColorClass = "text-green-400";
-                          }
-
-                          return (
-                            <div
-                              key={dcCode}
+                              }
+                              
+                              return (
+                                <div 
+                                  key={dcCode}
                               className={`relative flex items-center justify-between p-3 rounded-md cursor-pointer transition-all duration-150 ease-in-out 
                                           border 
-                                          ${isSelected 
+                                    ${isSelected 
                                             ? 'bg-cyber-accent/20 border-cyber-accent shadow-lg' 
                                             : 'bg-slate-800/70 border-slate-700 hover:bg-slate-700/70 hover:border-slate-500'}
                                          `}
-                              onClick={() => toggleDatacenterSelection(server.planCode, dcCode)}
+                                  onClick={() => toggleDatacenterSelection(server.planCode, dcCode)}
                               title={`${dc.name} - ${statusText}`}
                             >
                               <div className="flex flex-col">
                                 <span className={`text-lg font-bold ${isSelected ? 'text-cyber-accent' : 'text-slate-100'}`}>{dcCode}</span>
                                 <span className={`text-xs ${isSelected ? 'text-slate-300' : 'text-slate-400'} mt-0.5`}>{dc.name}</span>
-                              </div>
+                                    </div>
                               <span className={`text-sm font-medium ${statusColorClass} flex items-center`}>
                                 {availStatus === "unknown" ? (
                                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 animate-pulse">
@@ -1608,20 +1608,20 @@ const ServersPage = () => {
                                   </svg>
                                 ) : (
                                   statusText
-                                )}
+                                    )}
                               </span>
-                              
-                              {isSelected && (
+                                  
+                                  {isSelected && (
                                 <div className="absolute top-1.5 right-1.5 w-5 h-5 bg-cyber-accent rounded-full flex items-center justify-center">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                  </svg>
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                      </svg>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
+                              );
+                            })}
+                          </div>
                     </div>
                   </div>
                 </CardContent>
