@@ -724,61 +724,70 @@ const ServersPage = () => {
     }
     
     try {
-      // 过滤选项，只保留硬件相关的
-      const filterHardwareOptions = (options: string[]) => {
-        return options.filter(option => {
-          const optionLower = option.toLowerCase();
-          
-          // 排除许可证相关选项
-          if (
-            // Windows许可证
-            optionLower.includes("windows-server") ||
-            // SQL Server许可证
-            optionLower.includes("sql-server") ||
-            // cPanel许可证
-            optionLower.includes("cpanel-license") ||
-            // Plesk许可证
-            optionLower.includes("plesk-") ||
-            // 其他常见许可证
-            optionLower.includes("-license-") ||
-            // 操作系统选项
-            optionLower.startsWith("os-") ||
-            // 控制面板
-            optionLower.includes("control-panel") ||
-            optionLower.includes("panel") ||
-            // 安全产品
-            optionLower.includes("security") ||
-            optionLower.includes("antivirus") ||
-            optionLower.includes("firewall")
-          ) {
-            return false;
-          }
-          
-          return true;
-        });
-      };
-      
-      // 获取最终选项，如果用户选择了自定义选项则使用那些，否则使用默认选项
-      let options = selectedOptions[server.planCode]?.length > 0 
+      // 获取用户选择的配置选项
+      const userSelectedOptions = selectedOptions[server.planCode]?.length > 0 
         ? selectedOptions[server.planCode] 
         : server.defaultOptions.map(opt => opt.value);
+
+      // 将用户选择的配置分类整理为可读的格式
+      const formattedOptions: Record<string, string[]> = {};
+      const categorizeOption = (optionValue: string) => {
+        const option = server.availableOptions.find(opt => opt.value === optionValue);
+        if (!option) return null;
+        
+        // 尝试确定选项类别
+        let category = "其他";
+        const value = option.value.toLowerCase();
+        const label = option.label.toLowerCase();
+        
+        if (value.includes("ram-") || label.includes("内存") || label.includes("memory")) {
+          category = "内存";
+        } else if (value.includes("softraid") || value.includes("raid") || 
+                  label.includes("存储") || label.includes("storage") || 
+                  label.includes("ssd") || label.includes("hdd") || label.includes("nvme")) {
+          category = "存储";
+        } else if (value.includes("bandwidth") || value.includes("traffic") || 
+                  label.includes("带宽") || label.includes("bandwidth")) {
+          category = "网络";
+        }
+        
+        if (!formattedOptions[category]) {
+          formattedOptions[category] = [];
+        }
+        formattedOptions[category].push(option.label);
+        
+        return option;
+      };
       
-      // 过滤掉非硬件相关选项
-      options = filterHardwareOptions(options);
+      // 处理所有选中的选项
+      const selectedOptionDetails = userSelectedOptions.map(categorizeOption).filter(Boolean);
       
-      console.log("提交的硬件选项:", options);
+      console.log("用户选择的配置详情:", formattedOptions);
+      console.log("提交的配置选项:", userSelectedOptions);
 
       // 为每个选中的数据中心创建一个抢购请求
       const promises = datacenters.map(datacenter => 
         axios.post(`${API_URL}/queue`, {
           planCode: server.planCode,
           datacenter,
-          options: options,
+          options: userSelectedOptions,
         })
       );
       
       await Promise.all(promises);
-      toast.success(`已将 ${server.planCode} 添加到 ${datacenters.length} 个数据中心的抢购队列`);
+      
+      // 构建成功消息，包含用户选择的配置详情
+      let successMessage = `已将 ${server.planCode} 添加到 ${datacenters.length} 个数据中心的抢购队列`;
+      
+      // 如果有自定义配置，添加到成功消息中
+      if (userSelectedOptions.length > 0 && userSelectedOptions.some(opt => !server.defaultOptions.map(o => o.value).includes(opt))) {
+        successMessage += `\n已选配置: `;
+        Object.entries(formattedOptions).forEach(([category, options]) => {
+          successMessage += `${category}(${options.join(', ')}) `;
+        });
+      }
+      
+      toast.success(successMessage);
     } catch (error) {
       console.error("Error adding to queue:", error);
       toast.error("添加到抢购队列失败");
@@ -893,7 +902,7 @@ const ServersPage = () => {
         // 控制面板
         optionValue.includes("control-panel") ||
         optionValue.includes("panel") ||
-        // 其他软件许可
+        // 安全产品
         optionLabel.includes("license") ||
         optionLabel.includes("许可证") ||
         optionLabel.includes("许可") ||
@@ -1190,9 +1199,9 @@ const ServersPage = () => {
                                   </div>
                                 </div>
                                 <div className="flex flex-col">
-                                  <div className="flex items-center">
+                                  <div className="flex flex-col">
                                     <span className="text-sm font-medium">{displayLabel}</span>
-                                    <span className="ml-2 text-xs text-cyber-muted">{detailLabel}</span>
+                                    <span className="text-xs text-cyber-muted font-mono">{detailLabel}</span>
                                   </div>
                                 </div>
                               </div>
@@ -1201,6 +1210,52 @@ const ServersPage = () => {
                         );
                       })}
                     </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        
+        {/* 显示已选配置的摘要 */}
+        {selectedOptions[server.planCode]?.length > 0 && 
+         !selectedOptions[server.planCode].every(opt => server.defaultOptions.map(o => o.value).includes(opt)) && (
+          <div className="mt-2 p-2 bg-cyber-accent/10 border border-cyber-accent/30 rounded-md">
+            <div className="text-xs font-medium text-cyber-accent mb-1.5 flex items-center">
+              <CheckSquare size={14} className="mr-1.5" />
+              已选自定义配置
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedOptions[server.planCode].map(optValue => {
+                const option = server.availableOptions.find(o => o.value === optValue);
+                if (!option || server.defaultOptions.map(o => o.value).includes(optValue)) return null;
+                
+                let groupName = "其他";
+                for (const [name, group] of Object.entries(optionGroups)) {
+                  if (group.some(o => o.value === optValue)) {
+                    groupName = name;
+                    break;
+                  }
+                }
+                
+                const { displayLabel } = formatOptionDisplay(option, groupName);
+                
+                return (
+                  <div key={optValue} className="px-2 py-1 bg-cyber-accent/20 rounded text-xs flex items-center">
+                    {displayLabel}
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleOption(server.planCode, optValue);
+                      }} 
+                      className="ml-1.5 text-cyber-muted hover:text-cyber-accent"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                    </button>
                   </div>
                 );
               })}
@@ -1239,6 +1294,21 @@ const ServersPage = () => {
       
       {/* 添加全局样式 */}
       <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+
+      {/* 添加可用性检测说明 */}
+      <div className="bg-cyber-accent/15 border border-cyber-accent/50 rounded-md p-3 mb-4 shadow-md shadow-cyber-accent/10">
+        <div className="flex items-start">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-accent mt-0.5 mr-2 flex-shrink-0">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <p className="text-sm text-slate-100">
+            <span className="text-cyber-accent font-medium">可用性检测说明：</span> 
+            可用性检测仅针对服务器默认配置，若设置了自定义配置，实际库存状态将以进入抢购队列时为准。建议选择多个数据中心以提高抢购成功率。
+          </p>
+        </div>
+      </div>
 
       {/* Filters and controls */}
       <div className="cyber-panel p-4 mb-6">

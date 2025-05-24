@@ -255,8 +255,12 @@ def purchase_server(queue_item):
     if not client:
         return False
     
+    cart_id = None # Initialize cart_id to None
+    item_id = None # Initialize item_id to None
+    
     try:
         # Check availability first
+        add_log("INFO", f"开始为 {queue_item['planCode']} 在 {queue_item['datacenter']} 的购买流程，选项: {queue_item.get('options')}", "purchase")
         availabilities = client.get('/dedicated/server/datacenter/availabilities', planCode=queue_item["planCode"])
         
         found_available = False
@@ -272,21 +276,23 @@ def purchase_server(queue_item):
                 break
         
         if not found_available:
-            add_log("INFO", f"Server {queue_item['planCode']} not available in {queue_item['datacenter']}", "purchase")
+            add_log("INFO", f"服务器 {queue_item['planCode']} 在数据中心 {queue_item['datacenter']} 当前无货", "purchase")
             return False
         
         # Create cart
-        add_log("INFO", f"Creating cart for {config['zone']}", "purchase")
+        add_log("INFO", f"为区域 {config['zone']} 创建购物车", "purchase")
         cart_result = client.post('/order/cart', ovhSubsidiary=config["zone"])
         cart_id = cart_result["cartId"]
-        add_log("INFO", f"Cart created with ID: {cart_id}", "purchase")
+        add_log("INFO", f"购物车创建成功，ID: {cart_id}", "purchase")
         
-        # Assign cart
-        add_log("INFO", f"Assigning cart {cart_id}", "purchase")
-        client.post(f'/order/cart/{cart_id}/assign')
+        # Assign cart - It's often better to assign after all items and configurations are set,
+        # but OVH API can be particular. Let's keep it here for now as per original app.py flow,
+        # but consider moving it before checkout if issues arise.
+        # add_log("INFO", f"Assigning cart {cart_id}", "purchase")
+        # client.post(f'/order/cart/{cart_id}/assign') # Moved later
         
-        # Add item to cart
-        add_log("INFO", f"Adding {queue_item['planCode']} to cart", "purchase")
+        # Add base item to cart using /eco endpoint
+        add_log("INFO", f"添加基础商品 {queue_item['planCode']} 到购物车 (使用 /eco)", "purchase")
         item_payload = {
             "planCode": queue_item["planCode"],
             "pricingMode": "default",
@@ -294,109 +300,201 @@ def purchase_server(queue_item):
             "quantity": 1
         }
         item_result = client.post(f'/order/cart/{cart_id}/eco', **item_payload)
-        item_id = item_result["itemId"]
+        item_id = item_result["itemId"] # This is the itemId for the base server
+        add_log("INFO", f"基础商品添加成功，项目 ID: {item_id}", "purchase")
         
-        # Configure item
-        required_config = client.get(f'/order/cart/{cart_id}/item/{item_id}/requiredConfiguration')
-        
+        # Configure item (datacenter, OS, region)
+        add_log("INFO", f"为项目 {item_id} 设置必需配置", "purchase")
+        # Determine region based on datacenter (simplified)
+        dc_lower = queue_item["datacenter"].lower()
+        region = None
+        EU_DATACENTERS = ['gra', 'rbx', 'sbg', 'eri', 'lim', 'waw', 'par', 'fra', 'lon']
+        CANADA_DATACENTERS = ['bhs']
+        US_DATACENTERS = ['vin', 'hil']
+        APAC_DATACENTERS = ['syd', 'sgp'] # 'mum' could be added
+
+        if any(dc_lower.startswith(prefix) for prefix in EU_DATACENTERS): region = "europe"
+        elif any(dc_lower.startswith(prefix) for prefix in CANADA_DATACENTERS): region = "canada"
+        elif any(dc_lower.startswith(prefix) for prefix in US_DATACENTERS): region = "usa"
+        elif any(dc_lower.startswith(prefix) for prefix in APAC_DATACENTERS): region = "apac"
+
         configurations_to_set = {
             "dedicated_datacenter": queue_item["datacenter"],
-            "dedicated_os": "none_64.en"
+            "dedicated_os": "none_64.en" # Or make this configurable from queue_item
         }
-        
+        if region:
+            configurations_to_set["region"] = region
+        else:
+            add_log("WARNING", f"无法为数据中心 {dc_lower} 推断区域，可能导致配置失败", "purchase")
+            # Check if region is mandatory
+            try:
+                required_configs_list = client.get(f'/order/cart/{cart_id}/item/{item_id}/requiredConfiguration')
+                if any(conf.get("label") == "region" and conf.get("required") for conf in required_configs_list):
+                    raise Exception("必需的区域配置无法确定。")
+            except Exception as rc_err:
+                 add_log("WARNING", f"获取必需配置失败或区域为必需但未确定: {rc_err}", "purchase")
+                 # If region is critical and not found, this might be a point of failure.
+
         for label, value in configurations_to_set.items():
-            add_log("INFO", f"Setting configuration {label}={value}", "purchase")
+            if value is None: continue
+            add_log("INFO", f"配置项目 {item_id}: 设置必需项 {label} = {value}", "purchase")
             client.post(f'/order/cart/{cart_id}/item/{item_id}/configuration',
                        label=label,
                        value=str(value))
-        
-        # Add options if any
-        if queue_item["options"]:
-            # 过滤选项，只保留硬件相关选项
-            filtered_options = []
-            for option in queue_item["options"]:
-                if not option:
+            add_log("INFO", f"成功设置必需项: {label} = {value}", "purchase")
+
+        # Add hardware options using /eco/options endpoint
+        user_requested_options = queue_item.get("options", [])
+        if user_requested_options:
+            add_log("INFO", f"处理用户请求的硬件选项: {user_requested_options}", "purchase")
+            
+            # Filter out non-hardware options (licenses, OS, etc.)
+            filtered_hardware_options = []
+            for option_plan_code in user_requested_options:
+                if not option_plan_code or not isinstance(option_plan_code, str):
+                    add_log("WARNING", f"跳过无效的选项值: {option_plan_code}", "purchase")
                     continue
                 
-                option_lower = option.lower()
-                # 排除许可证相关选项
-                if (
-                    # Windows许可证
-                    "windows-server" in option_lower or
-                    # SQL Server许可证
-                    "sql-server" in option_lower or
-                    # cPanel许可证
-                    "cpanel-license" in option_lower or
-                    # Plesk许可证
-                    "plesk-" in option_lower or
-                    # 其他常见许可证
-                    "-license-" in option_lower or
-                    # 操作系统选项
-                    option_lower.startswith("os-") or
-                    # 控制面板
-                    "control-panel" in option_lower or
-                    "panel" in option_lower
-                ):
-                    add_log("INFO", f"跳过许可证选项: {option}", "purchase")
+                opt_lower = option_plan_code.lower()
+                if any(skip_term in opt_lower for skip_term in [
+                    "windows-server", "sql-server", "cpanel-license", "plesk-",
+                    "-license-", "os-", "control-panel", "panel", "license", "security"
+                ]):
+                    add_log("INFO", f"跳过非硬件/许可证选项: {option_plan_code}", "purchase")
                     continue
-                
-                filtered_options.append(option)
+                filtered_hardware_options.append(option_plan_code)
             
-            add_log("INFO", f"过滤后的硬件选项: {filtered_options}", "purchase")
-            
-            for option in filtered_options:
+            if filtered_hardware_options:
+                add_log("INFO", f"过滤后的硬件选项计划代码: {filtered_hardware_options}", "purchase")
                 try:
-                    add_log("INFO", f"添加选项: {option}", "purchase")
-                    option_payload = {
-                        "planCode": option,
-                        "pricingMode": "default",
-                        "duration": "P1M",
-                        "quantity": 1
-                    }
-                    client.post(f'/order/cart/{cart_id}/item/{item_id}/option', **option_payload)
-                except Exception as option_error:
-                    add_log("WARNING", f"Failed to add option {option}: {str(option_error)}", "purchase")
+                    # Get available ECO options for the base planCode in the cart
+                    add_log("INFO", f"获取购物车 {cart_id} 中与基础商品 {queue_item['planCode']} 兼容的 Eco 硬件选项...", "purchase")
+                    available_eco_options = client.get(f'/order/cart/{cart_id}/eco/options', planCode=queue_item['planCode'])
+                    add_log("INFO", f"找到 {len(available_eco_options)} 个可用的 Eco 硬件选项。", "purchase")
+                    # add_log("DEBUG", f"可用 Eco 选项详情: {json.dumps(available_eco_options)}", "purchase") # Verbose
+
+                    added_options_count = 0
+                    for wanted_option_plan_code in filtered_hardware_options:
+                        option_added_successfully = False
+                        for avail_opt in available_eco_options:
+                            avail_opt_plan_code = avail_opt.get("planCode")
+                            if not avail_opt_plan_code:
+                                continue
+
+                            # Match based on the start of the plan code (as per main.py logic)
+                            # or exact match if preferred. For now, using exact match for simplicity.
+                            # if avail_opt_plan_code.startswith(wanted_option_plan_code):
+                            if avail_opt_plan_code == wanted_option_plan_code:
+                                add_log("INFO", f"找到匹配的 Eco 选项: {avail_opt_plan_code} (匹配用户请求: {wanted_option_plan_code})", "purchase")
+                                try:
+                                    option_payload_eco = {
+                                        "itemId": item_id,  # Link to the base server item
+                                        "planCode": avail_opt_plan_code, # The planCode of the ECO option itself
+                                        "duration": avail_opt.get("duration", "P1M"),
+                                        "pricingMode": avail_opt.get("pricingMode", "default"),
+                                        "quantity": 1
+                                    }
+                                    add_log("INFO", f"准备添加 Eco 选项: {option_payload_eco}", "purchase")
+                                    client.post(f'/order/cart/{cart_id}/eco/options', **option_payload_eco)
+                                    add_log("INFO", f"成功添加 Eco 选项: {avail_opt_plan_code} 到购物车 {cart_id}", "purchase")
+                                    added_options_count += 1
+                                    option_added_successfully = True
+                                    break # Found and added, move to next wanted_option
+                                except ovh.exceptions.APIError as add_opt_error:
+                                    add_log("WARNING", f"添加 Eco 选项 {avail_opt_plan_code} 失败: {add_opt_error}", "purchase")
+                                except Exception as general_add_opt_error:
+                                    add_log("WARNING", f"添加 Eco 选项 {avail_opt_plan_code} 时发生未知错误: {general_add_opt_error}", "purchase")
+                        
+                        if not option_added_successfully:
+                             add_log("WARNING", f"用户请求的硬件选项 {wanted_option_plan_code} 未在可用Eco选项中找到或添加失败。", "purchase")
+                    
+                    add_log("INFO", f"共成功添加 {added_options_count} 个硬件选项。", "purchase")
+
+                except ovh.exceptions.APIError as get_opts_error:
+                    add_log("ERROR", f"获取 Eco 硬件选项列表失败: {get_opts_error}", "purchase")
+                except Exception as e:
+                    add_log("ERROR", f"处理 Eco 硬件选项时发生未知错误: {e}", "purchase")
+            else:
+                add_log("INFO", "用户未请求有效的硬件选项，或所有请求的选项都是非硬件类型。", "purchase")
+        else:
+            add_log("INFO", "用户未提供任何硬件选项。", "purchase")
+
+        # Assign cart (moved here, before checkout)
+        add_log("INFO", f"绑定购物车 {cart_id}", "purchase")
+        client.post(f'/order/cart/{cart_id}/assign')
+        add_log("INFO", "购物车绑定成功", "purchase")
         
         # Checkout
-        add_log("INFO", f"Checking out cart {cart_id}", "purchase")
+        add_log("INFO", f"对购物车 {cart_id} 执行结账", "purchase")
         checkout_payload = {
-            "autoPayWithPreferredPaymentMethod": False,
+            "autoPayWithPreferredPaymentMethod": False, # Set to True if you want to auto-pay
             "waiveRetractationPeriod": True
         }
         checkout_result = client.post(f'/order/cart/{cart_id}/checkout', **checkout_payload)
+        
+        order_id_val = checkout_result.get("orderId", "")
+        order_url_val = checkout_result.get("url", "")
         
         # Create purchase history entry
         history_entry = {
             "id": str(uuid.uuid4()),
             "planCode": queue_item["planCode"],
             "datacenter": queue_item["datacenter"],
+            "options": queue_item.get("options", []), # Log the originally requested options
             "status": "success",
-            "orderId": checkout_result.get("orderId", ""),
-            "orderUrl": checkout_result.get("url", ""),
+            "orderId": order_id_val,
+            "orderUrl": order_url_val,
             "purchaseTime": datetime.now().isoformat()
         }
         purchase_history.append(history_entry)
         save_data()
         update_stats()
         
-        add_log("INFO", f"Successfully purchased {queue_item['planCode']} in {queue_item['datacenter']}", "purchase")
+        add_log("INFO", f"成功购买 {queue_item['planCode']} 在 {queue_item['datacenter']} (订单ID: {order_id_val}, URL: {order_url_val})", "purchase")
         return True
     
-    except Exception as e:
-        # Create failed purchase history entry
+    except ovh.exceptions.APIError as api_e:
+        error_msg = str(api_e)
+        # Check for specific "unavailable" type errors if needed
+        is_unavailable_error = "is not available in" in error_msg or "stock" in error_msg.lower()
+
+        add_log("ERROR", f"购买 {queue_item['planCode']} 时发生 OVH API 错误: {error_msg}", "purchase")
+        if cart_id: add_log("ERROR", f"错误发生时的购物车ID: {cart_id}", "purchase")
+        if item_id: add_log("ERROR", f"错误发生时的基础商品ID: {item_id}", "purchase")
+        
         history_entry = {
             "id": str(uuid.uuid4()),
             "planCode": queue_item["planCode"],
             "datacenter": queue_item["datacenter"],
+            "options": queue_item.get("options", []),
             "status": "failed",
-            "errorMessage": str(e),
+            "errorMessage": error_msg,
             "purchaseTime": datetime.now().isoformat()
         }
         purchase_history.append(history_entry)
         save_data()
         update_stats()
-        
-        add_log("ERROR", f"Failed to purchase {queue_item['planCode']}: {str(e)}", "purchase")
+        return False
+
+    except Exception as e:
+        error_msg = str(e)
+        add_log("ERROR", f"购买 {queue_item['planCode']} 时发生未知错误: {error_msg}", "purchase")
+        add_log("ERROR", f"完整错误堆栈: {traceback.format_exc()}", "purchase")
+        if cart_id: add_log("ERROR", f"错误发生时的购物车ID: {cart_id}", "purchase")
+        if item_id: add_log("ERROR", f"错误发生时的基础商品ID: {item_id}", "purchase")
+
+        history_entry = {
+            "id": str(uuid.uuid4()),
+            "planCode": queue_item["planCode"],
+            "datacenter": queue_item["datacenter"],
+            "options": queue_item.get("options", []),
+            "status": "failed",
+            "errorMessage": error_msg,
+            "purchaseTime": datetime.now().isoformat()
+        }
+        purchase_history.append(history_entry)
+        save_data()
+        update_stats()
         return False
 
 # Process queue items
