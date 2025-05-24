@@ -117,6 +117,8 @@ const ServersPage = () => {
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
   // 标记是否已从缓存加载
   const hasLoadedFromCache = useRef(false);
+  // 新增：标记是否真正在从API获取数据，防止并发
+  const [isActuallyFetching, setIsActuallyFetching] = useState(false);
 
   // 检查缓存是否过期
   const isCacheExpired = (): boolean => {
@@ -184,13 +186,20 @@ const ServersPage = () => {
   const fetchServers = async (forceRefresh = false) => {
     // 如果不是强制刷新，并且已从缓存加载过数据，并且缓存未过期，则跳过
     if (!forceRefresh && hasLoadedFromCache.current && !isCacheExpired()) {
-      console.log("使用现有数据，缓存未过期");
+      console.log("使用现有数据，缓存未过期，跳过API请求");
+      return;
+    }
+
+    // 如果当前已经在从API获取数据，则跳过此次请求
+    if (isActuallyFetching) {
+      console.log("已在从API获取服务器数据，跳过此次冗余请求");
       return;
     }
     
     setIsLoading(true);
+    setIsActuallyFetching(true); // 标记开始从API获取
     try {
-      console.log("开始获取服务器数据...");
+      console.log(`开始从API获取服务器数据... (forceRefresh: ${forceRefresh})`);
       const response = await axios.get(`${API_URL}/servers`, {
         params: { showApiServers: isAuthenticated }
       });
@@ -268,7 +277,7 @@ const ServersPage = () => {
       setSelectedDatacenters(dcSelections);
       setServers(formattedServers);
       setFilteredServers(formattedServers);
-      setIsLoading(false);
+      setIsLoading(false); // isLoading 在这里可以先置为false，因为数据已获取并设置
       // 更新最后刷新时间
       setLastUpdated(new Date());
       
@@ -287,7 +296,7 @@ const ServersPage = () => {
     } catch (error) {
       console.error("获取服务器列表时出错:", error);
       toast.error("获取服务器列表失败");
-      setIsLoading(false);
+      setIsLoading(false); // 确保isLoading在出错时也更新
       
       // 如果API请求失败但有缓存数据，尝试从缓存加载
       if (!hasLoadedFromCache.current) {
@@ -297,6 +306,8 @@ const ServersPage = () => {
           hasLoadedFromCache.current = true;
         }
       }
+    } finally {
+      setIsActuallyFetching(false); // 确保无论成功或失败都重置状态
     }
   };
 
@@ -807,12 +818,12 @@ const ServersPage = () => {
         
         // 如果缓存过期，则在后台刷新数据
         if (isCacheExpired()) {
-          console.log("缓存已过期，在后台刷新数据");
+          console.log("缓存已过期，在后台刷新数据 (通过 loadInitialData)");
           fetchServers(true);
         }
       } else {
         // 如果缓存加载失败，则直接从API获取
-        console.log("缓存加载失败，从API获取数据");
+        console.log("缓存加载失败或无缓存，从API获取数据 (通过 loadInitialData)");
         fetchServers(true);
       }
     };
@@ -827,7 +838,8 @@ const ServersPage = () => {
     
     // Subscribe to auth change events
     const unsubscribe = apiEvents.onAuthChanged(() => {
-      fetchServers(true); // 强制刷新
+      console.log("认证状态改变事件触发，尝试获取服务器 (将尊重缓存和isActuallyFetching状态)");
+      fetchServers(); // 修改为 fetchServers()，不再强制刷新，让函数内部逻辑判断
     });
     
     return () => {
