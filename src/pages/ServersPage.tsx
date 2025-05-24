@@ -20,21 +20,46 @@ import { apiEvents } from "@/context/APIContext";
 // Backend API URL (update this to match your backend)
 const API_URL = 'http://localhost:5000/api';
 
-// OVH数据中心常量
-const OVH_DATACENTERS = [
-  { code: "gra", name: "格拉夫尼茨", region: "法国" },
-  { code: "sbg", name: "斯特拉斯堡", region: "法国" },
-  { code: "rbx", name: "鲁贝", region: "法国" },
-  { code: "bhs", name: "博阿尔诺", region: "加拿大" },
-  { code: "hil", name: "希尔斯伯勒", region: "美国" },
-  { code: "vin", name: "维也纳", region: "美国" },
-  { code: "lim", name: "利马索尔", region: "塞浦路斯" },
-  { code: "sgp", name: "新加坡", region: "新加坡" },
-  { code: "syd", name: "悉尼", region: "澳大利亚" },
-  { code: "waw", name: "华沙", region: "波兰" },
-  { code: "fra", name: "法兰克福", region: "德国" },
-  { code: "lon", name: "伦敦", region: "英国" },
-  { code: "eri", name: "厄斯沃尔", region: "英国" }
+// 全局CSS样式
+const globalStyles = `
+.datacenter-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.datacenter-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+.datacenter-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(100, 255, 218, 0.2);
+  border-radius: 10px;
+}
+.datacenter-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 255, 218, 0.4);
+}
+`;
+
+// OVH数据中心常量与国旗
+interface DatacenterInfo {
+  code: string;
+  name: string;
+  region: string;
+  flag: string;
+}
+
+const OVH_DATACENTERS: DatacenterInfo[] = [
+  { code: "gra", name: "格拉夫尼茨", region: "法国", flag: "🇫🇷" },
+  { code: "sbg", name: "斯特拉斯堡", region: "法国", flag: "🇫🇷" },
+  { code: "rbx", name: "鲁贝", region: "法国", flag: "🇫🇷" },
+  { code: "bhs", name: "博阿尔诺", region: "加拿大", flag: "🇨🇦" },
+  { code: "hil", name: "希尔斯伯勒", region: "美国", flag: "🇺🇸" },
+  { code: "vin", name: "维也纳", region: "美国", flag: "🇺🇸" },
+  { code: "lim", name: "利马索尔", region: "塞浦路斯", flag: "🇨🇾" },
+  { code: "sgp", name: "新加坡", region: "新加坡", flag: "🇸🇬" },
+  { code: "syd", name: "悉尼", region: "澳大利亚", flag: "🇦🇺" },
+  { code: "waw", name: "华沙", region: "波兰", flag: "🇵🇱" },
+  { code: "fra", name: "法兰克福", region: "德国", flag: "🇩🇪" },
+  { code: "lon", name: "伦敦", region: "英国", flag: "🇬🇧" },
+  { code: "eri", name: "厄斯沃尔", region: "英国", flag: "🇬🇧" }
 ];
 
 interface ServerOption {
@@ -146,26 +171,23 @@ const ServersPage = () => {
       
       console.log("格式化后的服务器列表:", formattedServers);
       
+      // 设置使用固定的数据中心列表
+      const allDatacenters = OVH_DATACENTERS.map(dc => dc.code.toUpperCase());
+      setDatacenters(allDatacenters);
+      
       // 初始化数据中心选择状态
       const dcSelections: Record<string, Record<string, boolean>> = {};
       formattedServers.forEach(server => {
         dcSelections[server.planCode] = {};
-        server.datacenters.forEach(dc => {
-          dcSelections[server.planCode][dc.datacenter] = false;
+        // 对所有固定的数据中心进行初始化
+        OVH_DATACENTERS.forEach(dc => {
+          dcSelections[server.planCode][dc.code.toUpperCase()] = false;
         });
       });
-      
-      // 收集所有数据中心
-      const allDatacenters = new Set<string>();
-      formattedServers.forEach(server => {
-        server.datacenters.forEach(dc => {
-          allDatacenters.add(dc.datacenter);
-        });
-      });
-      setDatacenters(Array.from(allDatacenters));
       
       setSelectedDatacenters(dcSelections);
       setServers(formattedServers);
+      setFilteredServers(formattedServers);
       setIsLoading(false);
       
       // 检查是否有服务器缺少硬件信息
@@ -315,7 +337,7 @@ const ServersPage = () => {
     }
     
     // 对于带宽
-    if (type.includes("带宽")) {
+    if (type.includes("带宽") && !type.includes("内网")) {
       // 已经包含单位或特殊格式
       if (value.toLowerCase().includes("gbps") || 
           value.toLowerCase().includes("mbps") || 
@@ -392,6 +414,51 @@ const ServersPage = () => {
           return `${size} Gbps`;
         } else if (unit === 'm') {
           return `${size} Mbps`;
+        }
+      }
+      
+      return value;
+    }
+    
+    // 对于内网带宽
+    if (type.includes("内网带宽")) {
+      // 已经包含单位或描述的情况
+      if (value.toLowerCase().includes("gbps") || 
+          value.toLowerCase().includes("mbps") || 
+          value.toLowerCase().includes("gbit") || 
+          value.toLowerCase().includes("内网") || 
+          value.toLowerCase().includes("vrack")) {
+        return value;
+      }
+      
+      // 处理vrack-bandwidth格式
+      const vrackBwMatch = value.match(/vrack-bandwidth-(\d+)/i);
+      if (vrackBwMatch) {
+        const bwValue = parseInt(vrackBwMatch[1]);
+        if (bwValue >= 1000) {
+          return `${bwValue/1000} Gbps 内网`.replace(".0 ", " ");
+        }
+        return `${bwValue} Mbps 内网`;
+      }
+      
+      // 尝试处理纯数字
+      if (!isNaN(Number(value))) {
+        const num = Number(value);
+        if (num >= 1000) {
+          return `${(num/1000).toFixed(1)} Gbps 内网`;
+        }
+        return `${num} Mbps 内网`;
+      }
+      
+      // 尝试匹配带宽格式
+      const bwMatch = value.match(/(\d+)([mg])/i);
+      if (bwMatch) {
+        const size = parseInt(bwMatch[1]);
+        const unit = bwMatch[2].toLowerCase();
+        if (unit === 'g') {
+          return `${size} Gbps 内网`;
+        } else if (unit === 'm') {
+          return `${size} Mbps 内网`;
         }
       }
       
@@ -498,6 +565,10 @@ const ServersPage = () => {
             } else if (groupName === "带宽/网络" && 
                       (optionFamily.includes("bandwidth") || optionFamily.includes("traffic") || 
                        optionLabel.includes("bandwidth") || optionLabel.includes("network"))) {
+              isInSameGroup = true;
+            } else if (groupName === "vRack内网" && 
+                      (option.value.toLowerCase().includes("vrack") || 
+                       optionLabel.includes("vrack") || optionLabel.includes("内网"))) {
               isInSameGroup = true;
             }
             
@@ -634,11 +705,10 @@ const ServersPage = () => {
       );
     }
     
-    // Apply datacenter filter
+    // Apply datacenter filter - 现在所有服务器都支持所有数据中心
     if (selectedDatacenter !== "all") {
-      filtered = filtered.filter(server => 
-        server.datacenters.some(dc => dc.datacenter === selectedDatacenter)
-      );
+      // 所有服务器都保留，因为我们假设每个服务器都可以在所有数据中心部署
+      // 实际应用中可能需要根据API返回的真实可用性进行过滤
     }
     
     setFilteredServers(filtered);
@@ -750,6 +820,7 @@ const ServersPage = () => {
       "内存": [],
       "存储": [],
       "带宽/网络": [],
+      "vRack内网": [],
       "其他": []
     };
     
@@ -757,6 +828,7 @@ const ServersPage = () => {
     filteredOptions.forEach(option => {
       const family = option.family?.toLowerCase() || "";
       const desc = option.label.toLowerCase();
+      const value = option.value.toLowerCase();
       
       if (family.includes("cpu") || family.includes("processor") || 
           desc.includes("cpu") || desc.includes("processor") || 
@@ -776,6 +848,10 @@ const ServersPage = () => {
                desc.includes("disk") || desc.includes("raid")) {
         optionGroups["存储"].push(option);
       }
+      else if (value.includes("vrack") || desc.includes("vrack") || 
+               desc.includes("内网") || family.includes("vrack")) {
+        optionGroups["vRack内网"].push(option);
+      }
       else if (family.includes("bandwidth") || family.includes("traffic") || 
                desc.includes("bandwidth") || desc.includes("network") || 
                desc.includes("ip") || desc.includes("带宽") || 
@@ -790,121 +866,193 @@ const ServersPage = () => {
     // 检查是否有任何选项被分组（确保至少有一个组有内容）
     const hasGroupedOptions = Object.values(optionGroups).some(group => group.length > 0);
     
+    // 格式化选项显示值的函数
+    const formatOptionDisplay = (option: ServerOption, groupName: string) => {
+      let displayLabel = option.label;
+      let detailLabel = option.value;
+      
+      // 对于RAM，尝试提取内存大小
+      if (groupName === "内存" && option.value.includes("ram-")) {
+        const ramMatch = option.value.match(/ram-(\d+)g/i);
+        if (ramMatch) {
+          displayLabel = `${ramMatch[1]} GB`;
+        }
+      }
+      
+      // 对于存储，尝试提取容量和类型
+      if (groupName === "存储" && (option.value.includes("raid") || option.value.includes("ssd") || option.value.includes("hdd") || option.value.includes("nvme"))) {
+        // 匹配 hybridsoftraid-2x6000sa-2x512nvme-24rise 这样的格式
+        const hybridRaidMatch = option.value.match(/hybridsoftraid-(\d+)x(\d+)(sa|ssd|hdd)-(\d+)x(\d+)(nvme|ssd|hdd)/i);
+        if (hybridRaidMatch) {
+          const count1 = hybridRaidMatch[1];
+          const size1 = hybridRaidMatch[2];
+          const type1 = hybridRaidMatch[3].toUpperCase();
+          const count2 = hybridRaidMatch[4];
+          const size2 = hybridRaidMatch[5];
+          const type2 = hybridRaidMatch[6].toUpperCase();
+          displayLabel = `混合RAID ${count1}x ${size1}GB ${type1} + ${count2}x ${size2}GB ${type2}`;
+        } else {
+          // 标准RAID格式
+          const storageMatch = option.value.match(/(raid|softraid)-(\d+)x(\d+)(sa|ssd|hdd|nvme)/i);
+          if (storageMatch) {
+            const raidType = storageMatch[1].toUpperCase();
+            const count = storageMatch[2];
+            const size = storageMatch[3];
+            const diskType = storageMatch[4].toUpperCase();
+            displayLabel = `${raidType} ${count}x ${size}GB ${diskType}`;
+          }
+        }
+      }
+      
+      // 对于带宽，尝试提取速率
+      if (groupName === "带宽/网络" && (option.value.includes("bandwidth") || option.value.includes("traffic"))) {
+        const bwMatch = option.value.match(/bandwidth-(\d+)/i);
+        if (bwMatch) {
+          const speed = parseInt(bwMatch[1]);
+          displayLabel = speed >= 1000 
+            ? `${speed/1000} Gbps` 
+            : `${speed} Mbps`;
+        }
+        
+        // 匹配格式如 traffic-25tb-1000-24rise-apac
+        const combinedTrafficMatch = option.value.match(/traffic-(\d+)(tb|gb|mb)-(\d+)/i);
+        if (combinedTrafficMatch) {
+          const trafficSize = combinedTrafficMatch[1];
+          const trafficUnit = combinedTrafficMatch[2].toUpperCase();
+          const bandwidth = combinedTrafficMatch[3];
+          displayLabel = `${bandwidth} Mbps / ${trafficSize} ${trafficUnit}流量`;
+        } else {
+          // 匹配仅有流量限制的格式 traffic-25tb
+          const trafficMatch = option.value.match(/traffic-(\d+)(tb|gb)/i);
+          if (trafficMatch) {
+            displayLabel = `${trafficMatch[1]} ${trafficMatch[2].toUpperCase()} 流量`;
+          }
+        }
+
+        // 匹配无限流量
+        if (option.value.toLowerCase().includes("unlimited")) {
+          displayLabel = `无限流量`;
+        }
+      }
+      
+      // 对于vRack内网带宽，单独处理
+      if (groupName === "vRack内网") {
+        const vrackBwMatch = option.value.match(/vrack-bandwidth-(\d+)/i);
+        if (vrackBwMatch) {
+          const speed = parseInt(vrackBwMatch[1]);
+          displayLabel = speed >= 1000 
+            ? `${speed/1000} Gbps 内网带宽` 
+            : `${speed} Mbps 内网带宽`;
+        }
+        
+        // 匹配其他vRack相关选项
+        if (option.value.toLowerCase().includes("vrack") && !option.value.toLowerCase().includes("bandwidth")) {
+          displayLabel = `vRack ${option.label}`;
+        }
+      }
+      
+      return { displayLabel, detailLabel };
+    };
+    
     // 渲染分组选项
     return (
-      <div className="space-y-3">
+      <div className="space-y-4 mt-2">
         {filteredDefaultOptions.length > 0 && (
-          <div>
-            <div className="font-medium text-cyber-accent mb-1">默认配置</div>
-            <div className="flex flex-wrap gap-1 mb-3">
-              {filteredDefaultOptions.map(option => (
-                <div
-                  key={option.value}
-                  className="bg-cyber-accent/10 px-2 py-1 rounded text-xs border border-cyber-accent/20 text-cyber-accent"
-                >
-                  {option.label}
-                </div>
-              ))}
+          <div className="rounded-md overflow-hidden border border-cyber-accent/20">
+            <div className="px-3 py-2 bg-cyber-grid/20 border-b border-cyber-accent/20 flex items-center">
+              <ArrowRightLeft size={14} className="mr-2 text-cyber-accent" />
+              <span className="text-sm font-medium">默认配置</span>
+            </div>
+            <div className="bg-cyber-grid/5 p-3">
+              <div className="flex flex-wrap gap-2">
+                {filteredDefaultOptions.map(option => {
+                  // 确定此选项属于哪个组
+                  let groupName = "其他";
+                  for (const [name, group] of Object.entries(optionGroups)) {
+                    if (group.some(o => o.value === option.value)) {
+                      groupName = name;
+                      break;
+                    }
+                  }
+                  
+                  const { displayLabel, detailLabel } = formatOptionDisplay(option, groupName);
+                  
+                  return (
+                    <div
+                      key={option.value}
+                      className="flex flex-col bg-cyber-accent/10 px-3 py-2 rounded text-xs border border-cyber-accent/20"
+                    >
+                      <span className="font-medium">{displayLabel}</span>
+                      <span className="text-cyber-muted font-mono text-[10px] mt-1">{detailLabel}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
+        
         {/* 只有当可选配置和默认配置不一致时才显示可选配置区域 */}
         {!optionsIdentical && hasGroupedOptions && (
-          <div className="mt-2">
-            <div className="font-medium text-cyber-blue mb-1">可选配置</div>
-            {Object.entries(optionGroups).map(([groupName, options]) => {
-              if (options.length === 0) return null;
-              return (
-                <div key={groupName} className="mb-3">
-                  <div className="font-medium text-cyber-blue mb-1">{groupName}</div>
-                  <div className="space-y-1 mb-2">
-                    {options.map(option => {
-                      // 格式化显示值，添加友好值+原始值双重显示
-                      let displayLabel = option.label;
-                      
-                      // 对于RAM，尝试提取内存大小
-                      if (groupName === "内存" && option.value.includes("ram-")) {
-                        const ramMatch = option.value.match(/ram-(\d+)g/i);
-                        if (ramMatch) {
-                          displayLabel = `${ramMatch[1]}GB (${option.value})`;
-                        }
-                      }
-                      
-                      // 对于存储，尝试提取容量和类型
-                      if ((groupName === "存储" && option.value.includes("raid")) || option.value.includes("ssd") || option.value.includes("hdd") || option.value.includes("nvme")) {
-                        // 匹配 hybridsoftraid-2x6000sa-2x512nvme-24rise 这样的格式
-                        const hybridRaidMatch = option.value.match(/hybridsoftraid-(\d+)x(\d+)(sa|ssd|hdd)-(\d+)x(\d+)(nvme|ssd|hdd)/i);
-                        if (hybridRaidMatch) {
-                          const count1 = hybridRaidMatch[1];
-                          const size1 = hybridRaidMatch[2];
-                          const type1 = hybridRaidMatch[3].toUpperCase();
-                          const count2 = hybridRaidMatch[4];
-                          const size2 = hybridRaidMatch[5];
-                          const type2 = hybridRaidMatch[6].toUpperCase();
-                          displayLabel = `混合RAID ${count1}x ${size1}GB ${type1} + ${count2}x ${size2}GB ${type2} (${option.value})`;
-                        } else {
-                          // 标准RAID格式
-                          const storageMatch = option.value.match(/(raid|softraid)-(\d+)x(\d+)(sa|ssd|hdd|nvme)/i);
-                          if (storageMatch) {
-                            const raidType = storageMatch[1].toUpperCase();
-                            const count = storageMatch[2];
-                            const size = storageMatch[3];
-                            const diskType = storageMatch[4].toUpperCase();
-                            displayLabel = `${raidType} ${count}x ${size}GB ${diskType} (${option.value})`;
-                          }
-                        }
-                      }
-                      
-                      // 对于带宽，尝试提取速率
-                      if (groupName === "带宽/网络" && (option.value.includes("bandwidth") || option.value.includes("traffic"))) {
-                        const bwMatch = option.value.match(/bandwidth-(\d+)/i);
-                        if (bwMatch) {
-                          const speed = parseInt(bwMatch[1]);
-                          displayLabel = speed >= 1000 
-                            ? `${speed/1000} Gbps (${option.value})` 
-                            : `${speed} Mbps (${option.value})`;
-                        }
+          <div className="rounded-md overflow-hidden border border-cyber-accent/20">
+            <div className="px-3 py-2 bg-cyber-grid/20 border-b border-cyber-accent/20 flex items-center">
+              <Settings size={14} className="mr-2 text-cyber-accent" />
+              <span className="text-sm font-medium">自定义配置</span>
+            </div>
+            <div className="divide-y divide-cyber-accent/10">
+              {Object.entries(optionGroups).map(([groupName, options]) => {
+                if (options.length === 0) return null;
+                
+                // 获取对应的图标
+                let GroupIcon = Settings;
+                if (groupName === "CPU/处理器") GroupIcon = Cpu;
+                else if (groupName === "内存") GroupIcon = Database;
+                else if (groupName === "存储") GroupIcon = HardDrive;
+                else if (groupName === "带宽/网络") GroupIcon = Wifi;
+                else if (groupName === "vRack内网") GroupIcon = ArrowRightLeft;
+                
+                return (
+                  <div key={groupName} className="p-3">
+                    <div className="font-medium text-xs mb-2 flex items-center text-cyber-accent">
+                      <GroupIcon size={14} className="mr-1.5" />
+                      {groupName}
+                    </div>
+                    <div className="space-y-2 pl-1">
+                      {options.map(option => {
+                        const { displayLabel, detailLabel } = formatOptionDisplay(option, groupName);
+                        const isSelected = isOptionSelected(server.planCode, option.value);
                         
-                        // 匹配格式如 traffic-25tb-1000-24rise-apac
-                        const combinedTrafficMatch = option.value.match(/traffic-(\d+)(tb|gb|mb)-(\d+)/i);
-                        if (combinedTrafficMatch) {
-                          const trafficSize = combinedTrafficMatch[1];
-                          const trafficUnit = combinedTrafficMatch[2].toUpperCase();
-                          const bandwidth = combinedTrafficMatch[3];
-                          displayLabel = `${bandwidth} Mbps / ${trafficSize} ${trafficUnit}流量 (${option.value})`;
-                        } else {
-                          // 匹配仅有流量限制的格式 traffic-25tb
-                          const trafficMatch = option.value.match(/traffic-(\d+)(tb|gb)/i);
-                          if (trafficMatch) {
-                            displayLabel = `${trafficMatch[1]} ${trafficMatch[2].toUpperCase()} 流量 (${option.value})`;
-                          }
-                        }
-
-                        // 匹配无限流量
-                        if (option.value.toLowerCase().includes("unlimited")) {
-                          displayLabel = `无限流量 (${option.value})`;
-                        }
-                      }
-                      
-                      return (
-                        <div key={option.value} className="flex items-center">
-                          <label className="cyber-radio-container flex items-center cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`${server.planCode}-${groupName}`}
-                              checked={isOptionSelected(server.planCode, option.value)}
-                              onChange={() => toggleOption(server.planCode, option.value, groupName)}
-                              className="mr-2"
-                            />
-                            <span className="text-sm">{displayLabel}</span>
-                          </label>
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div key={option.value} className="flex items-center">
+                            <label 
+                              className={`flex items-center justify-between p-2 rounded-md cursor-pointer transition-colors w-full
+                                ${isSelected 
+                                  ? 'bg-cyber-accent/15 border border-cyber-accent/30' 
+                                  : 'hover:bg-cyber-grid/10 border border-transparent'}`}
+                            >
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => toggleOption(server.planCode, option.value, groupName)}
+                                  className="mr-2"
+                                />
+                                <div className="flex flex-col">
+                                  <div className="flex items-center">
+                                    <span className="text-sm font-medium">{displayLabel}</span>
+                                    <span className="ml-2 text-xs text-cyber-muted">{detailLabel}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -936,6 +1084,9 @@ const ServersPage = () => {
         <h1 className="text-3xl font-bold mb-1 cyber-glow-text">服务器列表</h1>
         <p className="text-cyber-muted mb-6">浏览可用服务器与实时可用性检测</p>
       </motion.div>
+      
+      {/* 添加全局样式 */}
+      <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
 
       {/* Filters and controls */}
       <div className="cyber-panel p-4 mb-6">
@@ -963,15 +1114,11 @@ const ServersPage = () => {
               className="cyber-input w-full"
             >
               <option value="all">所有数据中心</option>
-              {datacenters.map((dc) => {
-                // 查找对应的数据中心完整信息
-                const dcInfo = OVH_DATACENTERS.find(item => item.code.toUpperCase() === dc);
-                return (
-                  <option key={dc} value={dc}>
-                    {dc} - {dcInfo ? `${dcInfo.name} (${dcInfo.region})` : dc}
-                  </option>
-                );
-              })}
+              {OVH_DATACENTERS.map((dc) => (
+                <option key={dc.code} value={dc.code.toUpperCase()}>
+                  {dc.code.toUpperCase()} - {dc.name} ({dc.region})
+                </option>
+              ))}
             </select>
           </div>
           
@@ -1118,22 +1265,39 @@ const ServersPage = () => {
                         <div className="font-medium text-sm">{formatServerSpec(server.bandwidth, "带宽")}</div>
                       </div>
                     </div>
+                    {server.vrackBandwidth && server.vrackBandwidth !== "N/A" && (
+                      <div className="flex items-center space-x-2 p-2 bg-cyber-grid/10 rounded border border-cyber-accent/10 col-span-2">
+                        <ArrowRightLeft size={18} className="text-cyber-accent" />
+                        <div>
+                          <div className="text-xs text-cyber-muted">内网带宽</div>
+                          <div className="font-medium text-sm">{formatServerSpec(server.vrackBandwidth, "内网带宽")}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   {/* 服务器配置选项 */}
                   {renderServerOptions(server)}
                   
                   {/* Datacenters availability section */}
-                  <div className="rounded border border-cyber-accent/20 overflow-hidden">
-                    <div className="flex justify-between items-center bg-cyber-grid/20 px-3 py-2 border-b border-cyber-accent/20">
-                      <span className="text-xs font-medium">数据中心</span>
+                  <div className="rounded-md overflow-hidden border border-cyber-accent/30">
+                    <div className="flex justify-between items-center bg-cyber-grid/30 px-4 py-3 border-b border-cyber-accent/30">
+                      <span className="text-sm font-medium flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-cyber-accent mr-2">
+                          <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                          <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                          <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                          <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                        </svg>
+                        数据中心选择
+                      </span>
                       <div className="flex space-x-2">
                         <Button
                           onClick={() => checkAvailability(server.planCode)}
                           disabled={isCheckingAvailability || !isAuthenticated}
                           variant="cyber"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-8 text-xs"
                         >
                           {isCheckingAvailability ? (
                             <span className="inline-flex items-center">
@@ -1167,22 +1331,28 @@ const ServersPage = () => {
                           disabled={!isAuthenticated || getSelectedDatacentersList(server.planCode).length === 0}
                           variant="cyber-filled"
                           size="sm"
-                          className="h-7 text-xs"
+                          className="h-8 text-xs"
                         >
                           抢购
                         </Button>
                       </div>
                     </div>
                     
-                    <div className="p-2 bg-cyber-grid/5 border-b border-cyber-accent/10">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-cyber-muted">选择数据中心:</span>
+                    <div className="p-3 bg-cyber-grid/10 border-b border-cyber-accent/20">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-cyber-muted flex items-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 8v4l3 3"></path>
+                          </svg>
+                          选择部署位置:
+                        </span>
                         <div className="flex space-x-2">
                           <Button
                             onClick={() => toggleAllDatacenters(server.planCode, true)}
                             variant="cyber"
                             size="sm"
-                            className="h-6 text-xs"
+                            className="h-7 text-xs bg-cyber-accent/10 hover:bg-cyber-accent/20"
                           >
                             全选
                           </Button>
@@ -1190,7 +1360,7 @@ const ServersPage = () => {
                             onClick={() => toggleAllDatacenters(server.planCode, false)}
                             variant="cyber"
                             size="sm"
-                            className="h-6 text-xs"
+                            className="h-7 text-xs"
                           >
                             取消全选
                           </Button>
@@ -1198,48 +1368,74 @@ const ServersPage = () => {
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-px bg-cyber-accent/10 p-px">
-                      {server.datacenters.map((dc) => {
-                        // Get availability from our availability state, or use the default from the server
-                        const availStatus = availability[server.planCode]?.[dc.datacenter.toLowerCase()] || dc.availability;
-                        
-                        let statusText = "未知";
-                        let statusClass = "text-yellow-400";
-                        let bgClass = "bg-cyber-grid/10";
-                        
-                        // 根据不同的可用性状态设置样式和文本
-                        if (availStatus === "unavailable") {
-                          statusText = "不可用";
-                          statusClass = "text-red-400";
-                        } else if (availStatus && availStatus !== "unknown") {
-                          // 如果有值且不是"unknown"，则显示为可用
-                          statusText = availStatus.includes("1H") ? 
-                                     `可用(${availStatus})` : "可用";
-                          statusClass = "text-green-400";
-                          bgClass = "bg-green-500/10";
-                        }
-                        
-                        return (
-                          <div 
-                            key={dc.datacenter}
-                            className={`p-2 text-center ${bgClass} cursor-pointer hover:bg-cyber-accent/10`}
-                            onClick={() => toggleDatacenterSelection(server.planCode, dc.datacenter)}
-                          >
-                            <div className="flex justify-center items-center mb-1">
-                              {selectedDatacenters[server.planCode]?.[dc.datacenter] ? (
-                                <CheckSquare size={14} className="text-cyber-accent mr-1" />
-                              ) : (
-                                <Square size={14} className="text-cyber-muted mr-1" />
-                              )}
-                              <span className="text-xs font-medium">{dc.datacenter}</span>
-                            </div>
-                            <div className="text-xs text-cyber-muted mb-1">{dc.dcName} ({dc.region})</div>
-                            <div className={`text-xs ${statusClass} mb-1`}>
-                              {statusText}
-                            </div>
+                    {/* 按区域分组显示数据中心 - 更紧凑的布局 */}
+                    <div className="p-3 space-y-4">
+                      {Object.entries(OVH_DATACENTERS.reduce((acc: Record<string, DatacenterInfo[]>, dc) => {
+                        if (!acc[dc.region]) acc[dc.region] = [];
+                        acc[dc.region].push(dc);
+                        return acc;
+                      }, {})).map(([region, dcs]) => (
+                        <div key={region}>
+                          <div className="text-xs font-medium mb-1.5 text-cyber-accent flex items-center border-l-2 border-cyber-accent/60 pl-1">
+                            <span className="mr-1.5 text-base">{dcs[0].flag}</span>
+                            {region}
                           </div>
-                        );
-                      })}
+                          
+                          <div className="flex flex-wrap gap-1.5">
+                            {dcs.map(dc => {
+                              const dcCode = dc.code.toUpperCase();
+                              const availStatus = availability[server.planCode]?.[dcCode.toLowerCase()] || "unknown";
+                              const isSelected = selectedDatacenters[server.planCode]?.[dcCode];
+                              
+                              // 确定状态颜色和文本
+                              let statusColor = "";
+                              let availText = "";
+                              
+                              if (availStatus === "unavailable") {
+                                statusColor = "bg-red-500/10";
+                                availText = "不可用";
+                              } else if (availStatus && availStatus !== "unknown") {
+                                statusColor = "bg-green-500/10";
+                                availText = availStatus.includes("1H") ? availStatus : "可用";
+                              }
+                              
+                              return (
+                                <div 
+                                  key={dcCode}
+                                  className={`relative cursor-pointer transition-all
+                                    ${isSelected 
+                                      ? 'bg-cyber-accent/30 border border-cyber-accent shadow-[0_0_5px_0_rgba(100,255,218,0.3)]' 
+                                      : `${statusColor} border border-cyber-accent/10 hover:border-cyber-accent/40`}`}
+                                  onClick={() => toggleDatacenterSelection(server.planCode, dcCode)}
+                                >
+                                  <div className="flex items-center">
+                                    <div className="flex flex-col justify-center items-center py-1 px-3 w-16">
+                                      <div className="text-sm font-bold">{dcCode}</div>
+                                      <div className="text-xs text-cyber-muted mt-0.5">{dc.name}</div>
+                                    </div>
+                                    
+                                    {availText && (
+                                      <div className={`text-xs px-2 h-full flex items-center justify-center
+                                        ${availStatus === "unavailable" ? "text-red-400" : 
+                                         (availStatus && availStatus !== "unknown") ? "text-green-400" : "text-yellow-400"}`}>
+                                        {availText}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {isSelected && (
+                                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-cyber-accent rounded-full flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
@@ -1258,6 +1454,7 @@ const ServersPage = () => {
                 <TableHead>内存</TableHead>
                 <TableHead>存储</TableHead>
                 <TableHead>带宽</TableHead>
+                <TableHead>内网带宽</TableHead>
                 <TableHead>选项</TableHead>
                 <TableHead>数据中心</TableHead>
                 <TableHead>操作</TableHead>
@@ -1292,49 +1489,80 @@ const ServersPage = () => {
                       {formatServerSpec(server.bandwidth, "带宽")}
                     </div>
                   </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex items-center">
+                      <ArrowRightLeft size={14} className="mr-1.5 text-cyber-accent" />
+                      {formatServerSpec(server.vrackBandwidth, "内网带宽")}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {renderServerOptions(server)}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {server.datacenters.map((dc) => {
-                        const availStatus = availability[server.planCode]?.[dc.datacenter.toLowerCase()] || dc.availability;
-                        let statusColor = "bg-yellow-500/20 border-yellow-500/30 text-yellow-400";
-                        
-                        // 根据不同的可用性状态设置样式
-                        if (availStatus === "unavailable") {
-                          statusColor = "bg-red-500/20 border-red-500/30 text-red-400";
-                        } else if (availStatus && availStatus !== "unknown") {
-                          statusColor = "bg-green-500/20 border-green-500/30 text-green-400";
-                        }
-                        
-                        return (
-                          <div 
-                            key={dc.datacenter} 
-                            className={`text-xs px-1.5 py-0.5 rounded border ${statusColor} mr-1 mb-1 flex items-center cursor-pointer hover:bg-cyber-accent/10`}
-                            title={`${dc.dcName} (${dc.region})`}
-                            onClick={() => toggleDatacenterSelection(server.planCode, dc.datacenter)}
-                          >
-                            {selectedDatacenters[server.planCode]?.[dc.datacenter] ? (
-                              <CheckSquare size={10} className="text-cyber-accent mr-1" />
-                            ) : (
-                              <Square size={10} className="text-cyber-muted mr-1" />
-                            )}
-                            <span className="font-medium">{dc.datacenter}</span>
-                            {availStatus === "unavailable" && 
-                              <span className="ml-1">不可用</span>
-                            }
-                            {availStatus === "unknown" && 
-                              <span className="ml-1">未知</span>
-                            }
-                            {availStatus && availStatus !== "unavailable" && availStatus !== "unknown" && (
-                              <span className="ml-1">
-                                {availStatus.includes("1H") ? `(${availStatus})` : "可用"}
-                              </span>
-                            )}
+                    <div className="max-h-48 overflow-y-auto p-1 pr-2 datacenter-scrollbar space-y-2">
+                      {Object.entries(OVH_DATACENTERS.reduce((acc: Record<string, DatacenterInfo[]>, dc) => {
+                        if (!acc[dc.region]) acc[dc.region] = [];
+                        acc[dc.region].push(dc);
+                        return acc;
+                      }, {})).map(([region, dcs]) => (
+                        <div key={region}>
+                          <div className="text-xs font-medium mb-1 text-cyber-accent flex items-center border-l-2 border-cyber-accent/60 pl-1">
+                            <span className="mr-1 text-sm">{dcs[0].flag}</span>
+                            {region}
                           </div>
-                        );
-                      })}
+                          
+                          <div className="flex flex-wrap gap-1">
+                            {dcs.map(dc => {
+                              const dcCode = dc.code.toUpperCase();
+                              const availStatus = availability[server.planCode]?.[dcCode.toLowerCase()] || "unknown";
+                              const isSelected = selectedDatacenters[server.planCode]?.[dcCode];
+                              
+                              // 确定状态颜色和文本
+                              let statusColor = "";
+                              let availText = "";
+                              
+                              if (availStatus === "unavailable") {
+                                statusColor = "bg-red-500/10";
+                                availText = "不可用";
+                              } else if (availStatus && availStatus !== "unknown") {
+                                statusColor = "bg-green-500/10";
+                                availText = availStatus.includes("1H") ? availStatus : "可用";
+                              }
+                              
+                              return (
+                                <div 
+                                  key={dcCode}
+                                  className={`relative text-xs ${isSelected 
+                                    ? 'bg-cyber-accent/30 border border-cyber-accent' 
+                                    : `${statusColor} border border-cyber-accent/10 hover:border-cyber-accent/40`}`}
+                                  onClick={() => toggleDatacenterSelection(server.planCode, dcCode)}
+                                >
+                                  <div className="flex items-center">
+                                    <div className="px-1.5 py-0.5 font-bold">
+                                      {dcCode}
+                                    </div>
+                                    {availText && (
+                                      <div className={`px-1 border-l border-cyber-accent/20
+                                        ${availStatus === "unavailable" ? "text-red-400" : 
+                                         (availStatus && availStatus !== "unknown") ? "text-green-400" : "text-yellow-400"}`}>
+                                        {availText}
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  {isSelected && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-cyber-accent rounded-full flex items-center justify-center">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="7" height="7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                      </svg>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </TableCell>
                   <TableCell>
