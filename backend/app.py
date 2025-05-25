@@ -10,6 +10,7 @@ from flask_cors import CORS
 import ovh
 import re
 import traceback
+import requests
 
 # Configure logging
 logging.basicConfig(
@@ -446,6 +447,28 @@ def purchase_server(queue_item):
         update_stats()
         
         add_log("INFO", f"成功购买 {queue_item['planCode']} 在 {queue_item['datacenter']} (订单ID: {order_id_val}, URL: {order_url_val})", "purchase")
+
+        # 发送 Telegram 成功通知
+        if config.get("tgToken") and config.get("tgChatId"):
+            success_message = (
+                f"🎉 OVH 服务器抢购成功！🎉\n\n"
+                f"服务器型号 (Plan Code): {queue_item['planCode']}\n"
+                f"数据中心: {queue_item['datacenter']}\n"
+                f"订单 ID: {order_id_val}\n"
+                f"订单链接: {order_url_val}\n"
+            )
+            options_list = queue_item.get("options", [])
+            if options_list:
+                options_str = ", ".join(options_list)
+                success_message += f"自定义配置: {options_str}\n"
+            
+            success_message += f"\n抢购任务ID: {queue_item['id']}"
+            
+            send_telegram_msg(success_message)
+            add_log("INFO", f"已为订单 {order_id_val} 发送 Telegram 成功通知。", "purchase")
+        else:
+            add_log("INFO", "未配置 Telegram Token 或 Chat ID，跳过成功通知发送。", "purchase")
+
         return True
     
     except ovh.exceptions.APIError as api_e:
@@ -1543,6 +1566,57 @@ def save_raw_api_response(client, zone):
     except Exception as e:
         add_log("WARNING", f"保存API原始响应时出错: {str(e)}")
 
+#移植过来的 send_telegram_msg 函数，适配 app.py 的 config
+def send_telegram_msg(message: str):
+    # 使用 app.py 的全局 config 字典
+    tg_token = config.get("tgToken")
+    tg_chat_id = config.get("tgChatId")
+
+    if not tg_token:
+        add_log("WARNING", "Telegram消息未发送: Bot Token未在config中设置")
+        return False
+    
+    if not tg_chat_id:
+        add_log("WARNING", "Telegram消息未发送: Chat ID未在config中设置")
+        return False
+    
+    add_log("INFO", f"准备发送Telegram消息，ChatID: {tg_chat_id}, TokenLength: {len(tg_token)}")
+    
+    url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+    payload = {
+        "chat_id": tg_chat_id,
+        "text": message
+    }
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        add_log("INFO", f"发送HTTP请求到Telegram API: {url[:45]}...")
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        add_log("INFO", f"Telegram API响应: 状态码={response.status_code}")
+        
+        if response.status_code == 200:
+            try:
+                response_data = response.json()
+                add_log("INFO", f"Telegram响应数据: {response_data}")
+                add_log("INFO", "成功发送消息到Telegram")
+                return True
+            except Exception as json_error: # Changed from json.JSONDecodeError to generic Exception for wider catch, or could add 'import json'
+                add_log("ERROR", f"解析Telegram响应JSON时出错: {str(json_error)}")
+                return False # Explicitly return False here
+        else:
+            add_log("ERROR", f"发送消息到Telegram失败: 状态码={response.status_code}, 响应={response.text}")
+            return False
+    except requests.exceptions.Timeout:
+        add_log("ERROR", "发送Telegram消息超时")
+        return False
+    except requests.exceptions.RequestException as e:
+        add_log("ERROR", f"发送Telegram消息时发生网络错误: {str(e)}")
+        return False
+    except Exception as e:
+        add_log("ERROR", f"发送Telegram消息时发生未预期错误: {str(e)}")
+        add_log("ERROR", f"错误详情: {traceback.format_exc()}")
+        return False
+
 # Routes
 @app.route('/api/settings', methods=['GET'])
 def get_settings():
@@ -1553,6 +1627,10 @@ def save_settings():
     global config
     data = request.json
     
+    # Store previous TG settings to check if they changed
+    prev_tg_token = config.get("tgToken")
+    prev_tg_chat_id = config.get("tgChatId")
+
     # Update config
     config = {
         "appKey": data.get("appKey", ""),
@@ -1570,7 +1648,26 @@ def save_settings():
         config["iam"] = f"go-ovh-{config['zone'].lower()}"
     
     save_data()
-    add_log("INFO", "API settings updated")
+    add_log("INFO", "API settings updated in config.json") # Clarified log message
+
+    # Check if Telegram settings are present and if they have changed or were just set
+    current_tg_token = config.get("tgToken")
+    current_tg_chat_id = config.get("tgChatId")
+
+    if current_tg_token and current_tg_chat_id:
+        # Send test message if token or chat id is newly set or changed
+        if (current_tg_token != prev_tg_token) or (current_tg_chat_id != prev_tg_chat_id) or not prev_tg_token or not prev_tg_chat_id :
+            add_log("INFO", f"Telegram Token或Chat ID已更新/设置。尝试发送Telegram测试消息到 Chat ID: {current_tg_chat_id}")
+            test_message_content = "OVH Phantom Sniper: Telegram 通知已成功配置 (来自 app.py 测试)"
+            test_result = send_telegram_msg(test_message_content) # Call the移植过来的 function
+            if test_result:
+                add_log("INFO", "Telegram 测试消息发送成功。")
+            else:
+                add_log("WARNING", "Telegram 测试消息发送失败。请检查 Token 和 Chat ID 以及后端日志。")
+        else:
+            add_log("INFO", "Telegram 配置未更改，跳过测试消息。")
+    else:
+        add_log("INFO", "未配置 Telegram Token 或 Chat ID，跳过测试消息。")
     
     return jsonify({"status": "success"})
 

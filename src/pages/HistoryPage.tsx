@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import axios from "axios";
@@ -11,6 +10,7 @@ interface PurchaseHistory {
   id: string;
   planCode: string;
   datacenter: string;
+  options?: string[];
   status: "success" | "failed";
   orderId?: string;
   orderUrl?: string;
@@ -181,12 +181,13 @@ const HistoryPage = () => {
             <table className="w-full">
               <thead>
                 <tr className="bg-cyber-grid/30 text-cyber-muted text-left text-sm">
-                  <th className="p-4">服务器</th>
-                  <th className="p-4">数据中心</th>
-                  <th className="p-4">状态</th>
-                  <th className="p-4">订单 ID</th>
-                  <th className="p-4">购买时间</th>
-                  <th className="p-4">操作</th>
+                  <th className="p-4 text-left">服务器</th>
+                  <th className="p-4 text-left">数据中心</th>
+                  <th className="p-4 text-left">配置选项</th>
+                  <th className="p-4 text-left">状态</th>
+                  <th className="p-4 text-left">订单 ID</th>
+                  <th className="p-4 text-left">购买时间</th>
+                  <th className="p-4 text-left">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-cyber-grid/20">
@@ -195,12 +196,17 @@ const HistoryPage = () => {
                     key={item.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="hover:bg-cyber-grid/10 transition-colors"
+                    className="hover:bg-cyber-grid/10 transition-colors align-top"
                   >
-                    <td className="p-4 font-medium text-cyber-accent">{item.planCode}</td>
-                    <td className="p-4">{item.datacenter}</td>
-                    <td className="p-4">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${
+                    <td className="p-4 font-medium text-cyber-accent whitespace-nowrap">{item.planCode}</td>
+                    <td className="p-4 text-cyber-text-dimmed whitespace-nowrap">{item.datacenter.toUpperCase()}</td>
+                    <td className="p-4 text-xs text-cyber-text-dimmed min-w-[200px] max-w-xs" title={item.options && item.options.length > 0 ? item.options.join(', ') : '默认配置'}>
+                      {item.options && item.options.length > 0 
+                        ? <span className="whitespace-normal break-words">{item.options.join(', ')}</span>
+                        : '默认配置'}
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                         item.status === "success" 
                           ? "bg-green-500/20 text-green-400" 
                           : "bg-red-500/20 text-red-400"
@@ -208,13 +214,13 @@ const HistoryPage = () => {
                         {item.status === "success" ? "成功" : "失败"}
                       </span>
                     </td>
-                    <td className="p-4 text-cyber-muted">
+                    <td className="p-4 text-cyber-text-dimmed whitespace-nowrap">
                       {item.orderId || "-"}
                     </td>
-                    <td className="p-4 text-cyber-muted">
+                    <td className="p-4 text-cyber-text-dimmed whitespace-nowrap">
                       {new Date(item.purchaseTime).toLocaleString()}
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 whitespace-nowrap">
                       {item.status === "success" && item.orderUrl ? (
                         <a 
                           href={item.orderUrl} 

@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Cpu, Database, Wifi, HardDrive, CheckSquare, Square, Settings, ArrowRightLeft, Clock } from "lucide-react";
 import { apiEvents } from "@/context/APIContext";
+import { OVH_DATACENTERS, DatacenterInfo } from "@/config/ovhConstants"; // Import from new location
 
 // Backend API URL (update this to match your backend)
 const API_URL = 'http://localhost:5000/api';
@@ -45,30 +46,6 @@ const globalStyles = `
 }
 `;
 
-// OVH数据中心常量与国旗
-interface DatacenterInfo {
-  code: string;
-  name: string;
-  region: string;
-  flag: string;
-}
-
-const OVH_DATACENTERS: DatacenterInfo[] = [
-  { code: "gra", name: "格拉夫尼茨", region: "法国", flag: "🇫🇷" },
-  { code: "sbg", name: "斯特拉斯堡", region: "法国", flag: "🇫🇷" },
-  { code: "rbx", name: "鲁贝", region: "法国", flag: "🇫🇷" },
-  { code: "bhs", name: "博阿尔诺", region: "加拿大", flag: "🇨🇦" },
-  { code: "hil", name: "希尔斯伯勒", region: "美国", flag: "🇺🇸" },
-  { code: "vin", name: "维也纳", region: "美国", flag: "🇺🇸" },
-  { code: "lim", name: "利马索尔", region: "塞浦路斯", flag: "🇨🇾" },
-  { code: "sgp", name: "新加坡", region: "新加坡", flag: "🇸🇬" },
-  { code: "syd", name: "悉尼", region: "澳大利亚", flag: "🇦🇺" },
-  { code: "waw", name: "华沙", region: "波兰", flag: "🇵🇱" },
-  { code: "fra", name: "法兰克福", region: "德国", flag: "🇩🇪" },
-  { code: "lon", name: "伦敦", region: "英国", flag: "🇬🇧" },
-  { code: "eri", name: "厄斯沃尔", region: "英国", flag: "🇬🇧" }
-];
-
 interface ServerOption {
   label: string;
   value: string;
@@ -92,6 +69,7 @@ interface ServerPlan {
     dcName: string;
     region: string;
     availability: string;
+    countryCode: string;
   }[];
 }
 
@@ -1579,7 +1557,7 @@ const ServersPage = () => {
                     
                     {/* 数据中心列表 - 采用用户截图样式，一行1-2列 */}
                     <div className="bg-slate-900/10 p-3">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                         {OVH_DATACENTERS.map(dc => {
                               const dcCode = dc.code.toUpperCase();
                           // Ensure availability and selectedDatacenters are correctly scoped to the current server
@@ -1600,22 +1578,26 @@ const ServersPage = () => {
                               return (
                                 <div 
                                   key={dcCode}
-                              className={`relative flex items-center justify-between p-3 rounded-md cursor-pointer transition-all duration-150 ease-in-out 
+                              className={`relative flex items-center justify-between p-2.5 rounded-md cursor-pointer transition-all duration-150 ease-in-out 
                                           border 
                                     ${isSelected 
-                                            ? 'bg-cyber-accent/20 border-cyber-accent shadow-lg' 
-                                            : 'bg-slate-800/70 border-slate-700 hover:bg-slate-700/70 hover:border-slate-500'}
+                                            ? 'bg-cyber-accent/20 border-cyber-accent shadow-md'
+                                            : 'bg-slate-800/60 border-slate-700 hover:bg-slate-700/60 hover:border-slate-500'}
                                          `}
                                   onClick={() => toggleDatacenterSelection(server.planCode, dcCode)}
-                              title={`${dc.name} - ${statusText}`}
+                              title={`${dc.name} (${dc.region}) - ${statusText}`}
                             >
-                              <div className="flex flex-col">
-                                <span className={`text-lg font-bold ${isSelected ? 'text-cyber-accent' : 'text-slate-100'}`}>{dcCode}</span>
-                                <span className={`text-xs ${isSelected ? 'text-slate-300' : 'text-slate-400'} mt-0.5`}>{dc.name}</span>
-                                    </div>
-                              <span className={`text-sm font-medium ${statusColorClass} flex items-center`}>
+                              <div className="flex items-center overflow-hidden mr-2"> {/* Restored overflow-hidden */}
+                                {/* Use CSS class for flag icon based on countryCode */}
+                                <span className={`fi fi-${dc.countryCode.toLowerCase()} mr-2 text-lg`}></span> {/* Adjusted size via text-lg, ensure flag icon CSS handles sizing */}
+                                <div className="flex flex-col overflow-hidden"> {/* Restored overflow-hidden */}
+                                  <span className={`text-base font-semibold ${isSelected ? 'text-cyber-accent' : 'text-slate-100'} truncate`}>{dcCode}</span> {/* Restored truncate */}
+                                  <span className={`text-[11px] ${isSelected ? 'text-slate-300' : 'text-slate-400'} mt-0.5 truncate`}>{dc.name}</span> {/* Restored truncate */}
+                                </div>
+                              </div>
+                              <span className={`text-xs font-medium ${statusColorClass} flex items-center flex-shrink-0`}>
                                 {availStatus === "unknown" ? (
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 animate-pulse">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 animate-pulse">
                                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                                   </svg>
                                 ) : (
